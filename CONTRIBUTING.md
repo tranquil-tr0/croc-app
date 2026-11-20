@@ -7,7 +7,7 @@ If you want to help:
 3. Include screenshots or recordings for UI changes when possible.
 4. Mention migration impact, behavior changes, and testing notes in the PR description.
 
-## Vendoring Go Dependencies (F-Droid Compliance)
+## Vendoring Go Dependencies
 
 croc-app builds croc from vendored source in `third_party/croc-src`.
 
@@ -17,11 +17,10 @@ Whenever dependencies are updated or re-vendored, you must commit the `vendor/` 
 cd third_party/croc-src
 go mod tidy
 go mod vendor
-python3 ../../tools/prepare-croc-vendor.py  # needs Python 3.14+
 go build ./...
 ```
 
-Ensure no prebuilt binaries (`.so`, `.a`, `.jar`, `.exe`, etc.) are committed into `third_party/`.
+`vendor/` also carries app patches to `tailscale.com` (Android netmon/netcheck fallbacks and `magicsock.DERPStartedChan`, used by `internal/tailcat`). `go mod vendor` discards them, so re-apply them afterwards (see commit `3227195`) or the build fails.
 
 ## Areas where help is especially useful:
 

@@ -296,8 +296,8 @@ class CrocBinaryManager(private val context: Context) {
     }
 
     private fun downloadAndExtractBinary(outputFile: File, spec: EngineSpec) {
-        // F-Droid forbids bundling prebuilt binaries in the APK, so we fetch the
-        // upstream release on demand and cache the extracted executable locally.
+        // Fallback for builds without the packaged libcroc.so: fetch the upstream
+        // release on demand and cache the extracted executable locally.
         val tempTarFile = File(binaryDir, "${spec.cachedBinaryName}.tar.gz.download")
         tempTarFile.delete()
 

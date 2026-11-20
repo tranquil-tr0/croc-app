@@ -12,10 +12,9 @@ val crocOutputFile = crocOutputDir.map { it.file("libcroc.so") }
 val goTelemetryDir = rootProject.layout.buildDirectory.dir("go/telemetry")
 val goCacheDir = rootProject.layout.buildDirectory.dir("go/cache")
 val goModCacheDir = rootProject.layout.buildDirectory.dir("go/mod-cache")
-val fdroidGoExecutable = rootProject.layout.projectDirectory.file(".fdroid-go/bin/go").asFile
 val goExecutable = providers.gradleProperty("crocGoExecutable")
     .orElse(providers.environmentVariable("CROC_GO"))
-    .orElse(if (fdroidGoExecutable.exists()) fdroidGoExecutable.absolutePath else "go")
+    .orElse("go")
 
 val buildCrocAndroidArm64 by tasks.registering(Exec::class) {
     group = "build"

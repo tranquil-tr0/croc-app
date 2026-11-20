@@ -15,16 +15,10 @@ It is designed to make file and text sharing feel much more natural on Android: 
 <h1><a id="download-now"></a>Download Now</h1>
 <table>
   <tr>
-    <th align="center">F-Droid</th>
     <th align="center">GitHub Release</th>
     <th align="center">Obtainium</th>
   </tr>
   <tr>
-    <td align="center">
-      <a href="https://f-droid.org/en/packages/com.dking.crocapp/">
-  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
-</a>
-    </td>
     <td align="center">
       <a href="https://github.com/Dking08/croc-app/releases/latest/download/croc-app.apk">
         <img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Download from GitHub" height="75">
@@ -125,100 +119,13 @@ A similar flow works in reverse for sending text from my phone to my desktop.
 
 ## Building
 
-### Standard build (quick)
-
-If you just want to build and run the app locally:
+Build and run the app locally with:
 
 ```bash
 ./gradlew assembleRelease
 ```
 
-Or open the project in Android Studio and run the `app` configuration.
-
-This produces a working APK, but it may **not be reproducible**.
-
----
-
-### Reproducible build
-
-For deterministic builds (matching CI / F-Droid), use the scripts in:
-
-```
-reproducible-build/
-```
-
-This setup uses Docker to ensure:
-
-* consistent environment
-* reproducible dependency resolution
-* deterministic signing
-
-#### Steps (Linux/macOS)
-
-```bash
-cd reproducible-build
-
-docker build -t croc-app-build .
-docker run --rm \
-  -e REPO_BRANCH=main \
-  -e KEYSTORE_PASS=your_keystore_password \
-  -e KEY_ALIAS=your_key_alias \
-  -e KEY_PASS=your_key_password \
-  -v $(pwd)/key.jks:/secrets/release.jks:ro \
-  -v $(pwd)/output:/output \
-  croc-app-builder \
-  bash /build/build.sh
-```
-
-Output:
-
-```
-output/croc-app-release.apk
-```
-
----
-
-### Reproducible build (Windows)
-
-You can use the provided batch script:
-
-```
-reproducible-build/run-build.bat
-```
-
-Before running, edit the script and configure:
-
-```bat
-set "KEYSTORE_FILE=%~dp0key.jks"
-set "KEY_ALIAS=ALIAS"
-set /p KEYSTORE_PASS=<kspass.txt
-set /p KEY_PASS=<kpass.txt
-```
-
-Then:
-
-1. Place your keystore:
-
-```
-reproducible-build/key.jks
-```
-
-2. Add passwords in:
-
-```
-reproducible-build/kspass.txt
-reproducible-build/kpass.txt
-```
-
-3. Run:
-
-```bat
-run-build.bat
-```
-
-The signed APK will be generated in the `output/` directory.
-
----
+Or open the project in Android Studio and run the `app` configuration. Building needs Go on the `PATH` (or set `CROC_GO`), since croc is compiled from `third_party/croc-src`.
 
 ## Contributing
 

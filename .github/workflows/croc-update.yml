@@ -50,12 +50,6 @@ jobs:
         with:
           go-version-file: third_party/croc-src/go.mod
 
-      - name: Setup Python (prepare-croc-vendor.py needs compression.zstd)
-        if: steps.current.outputs.version != steps.latest.outputs.version
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.14'
-
       - name: Tidy, vendor, and sanity-build
         id: vendor
         if: steps.current.outputs.version != steps.latest.outputs.version
@@ -63,45 +57,7 @@ jobs:
         run: |
           go mod tidy
           go mod vendor
-          python3 ../../tools/prepare-croc-vendor.py
           go build ./...   # fail fast if upstream broke the build
-
-      - name: Scan for F-Droid disallowed file types
-        id: fdroid_scan
-        if: steps.current.outputs.version != steps.latest.outputs.version
-        run: |
-          FLAGGED=""
-
-          # Extensions F-Droid's scanner.py unconditionally rejects
-          while IFS= read -r -d '' f; do
-            FLAGGED="${FLAGGED}${f}\n"
-          done < <(find third_party/croc-src \
-            \( -name '*.a' -o -name '*.aar' -o -name '*.class' -o -name '*.dex' \
-               -o -name '*.gz' -o -name '*.tgz' -o -name '*.zst' -o -name '*.so' -o -name '*.so.*' \
-               -o -name '*.zip' -o -name '*.jar' -o -name '*.wasm' \) \
-            ! -name 'gradle-wrapper.jar' ! -name 'gradlew.bat' \
-            -print0)
-
-          # Extensionless / .bin / .out / .exe files that are actually binary content
-          while IFS= read -r -d '' f; do
-            base="$(basename "$f")"
-            ext="${base##*.}"
-            if { [ "$base" = "$ext" ] || [ "$ext" = "bin" ] || [ "$ext" = "out" ] || [ "$ext" = "exe" ]; } \
-               && ! grep -Iq . "$f" 2>/dev/null; then
-              FLAGGED="${FLAGGED}${f}\n"
-            fi
-          done < <(find third_party/croc-src -type f -print0)
-
-          if [ -n "$FLAGGED" ]; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
-            {
-              echo "flagged<<EOF"
-              echo -e "$FLAGGED"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Update version marker and source code references
         id: bump_version
@@ -235,16 +191,6 @@ jobs:
             } >> /tmp/pr_body.txt
           fi
 
-          if [ "${{ steps.fdroid_scan.outputs.found }}" = "true" ]; then
-            {
-              echo ""
-              echo "⚠️ **F-Droid disallowed file types detected — review before merging:**"
-              echo '```'
-              echo "${{ steps.fdroid_scan.outputs.flagged }}"
-              echo '```'
-            } >> /tmp/pr_body.txt
-          fi
-
           PR_TITLE="Bump croc ${OLD_TAG} → ${NEW_TAG}"
 
           # Create or update PR using GitHub CLI
@@ -287,14 +233,6 @@ jobs:
               echo "❌ New version \`${{ steps.latest.outputs.version }}\` found, but \`go mod vendor\` / \`go build\` failed — upstream may have broken something. Needs a manual look."
             elif [ "${{ steps.create_pr.outcome }}" != "success" ]; then
               echo "❌ New version \`${{ steps.latest.outputs.version }}\` found and validated, but PR creation failed — check the \"Create 2-commit branch and open Pull Request\" step logs."
-            elif [ "${{ steps.fdroid_scan.outputs.found }}" == "true" ] && [ "${{ steps.stale_check.outputs.found }}" == "true" ]; then
-              echo "⚠️ **Updated** croc \`${{ steps.current.outputs.version }}\` → \`${{ steps.latest.outputs.version }}\` — but F-Droid-disallowed files were found AND stale version strings remain in files not covered by the sed script."
-              echo ""
-              echo "PR: ${{ steps.create_pr.outputs.pull-request-url }}"
-            elif [ "${{ steps.fdroid_scan.outputs.found }}" == "true" ]; then
-              echo "⚠️ **Updated** croc \`${{ steps.current.outputs.version }}\` → \`${{ steps.latest.outputs.version }}\` — but F-Droid-disallowed files were found in the vendored source."
-              echo ""
-              echo "PR: ${{ steps.create_pr.outputs.pull-request-url }}"
             elif [ "${{ steps.stale_check.outputs.found }}" == "true" ]; then
               echo "⚠️ **Updated** croc \`${{ steps.current.outputs.version }}\` → \`${{ steps.latest.outputs.version }}\` — but stale version strings remain in files this workflow doesn't know how to bump. See the PR body for the list."
               echo ""
