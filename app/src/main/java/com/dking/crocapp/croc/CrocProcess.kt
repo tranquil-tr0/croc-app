@@ -3,6 +3,7 @@ package com.dking.crocapp.croc
 import android.content.Context
 import android.net.ConnectivityManager
 import android.util.Log
+import com.dking.crocapp.R
 import com.dking.crocapp.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -72,6 +73,18 @@ class CrocProcess(
                 val line = it.lowercase()
                 "on unix systems, to receive with croc you either need" in line ||
                         "on unix systems, to send with a custom code phrase" in line
+            }
+        }
+
+        /**
+         * croc 11 receivers exit with "local discovery failed: ... i/o timeout" within seconds
+         * when nobody is waiting in the room on the relay.
+         */
+        internal fun isSenderNotFound(exitCode: Int, outputTail: List<String>): Boolean {
+            if (exitCode == 0) return false
+            return outputTail.any {
+                val line = it.lowercase()
+                "local discovery failed" in line && "timeout" in line
             }
         }
 
@@ -770,6 +783,9 @@ class CrocProcess(
     }
 
     internal fun errorMessageFor(result: ProcessResult): String {
+        if (isSenderNotFound(result.exitCode, result.outputTail)) {
+            return context.getString(R.string.error_sender_not_found)
+        }
         return formatErrorMessage(result.exitCode, result.outputTail)
     }
 

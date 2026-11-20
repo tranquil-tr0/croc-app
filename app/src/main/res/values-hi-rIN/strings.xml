@@ -513,4 +513,5 @@
     <string name="receive_input_code_dialog_title">गुप्त कोड दर्ज करें</string>
     <string name="receive_input_code_dialog_desc">प्राप्त करना शुरू करने के लिए प्रेषक का गुप्त कोड वाक्यांश दर्ज करें।</string>
     <string name="receive_input_code_save_default">डिफ़ॉल्ट कोड वाक्यांश के रूप में सहेजें</string>
+    <string name="error_sender_not_found">इस रिले पर कोई भेजने वाला नहीं मिला। कोड जाँचें। croc 11.2 से पुराने भेजने वाले लगभग 4 में से 1 कोड पर ही जुड़ पाते हैं, जब तक रिले croc.schollz.com:9009 पर सेट न हो।</string>
 </resources>
