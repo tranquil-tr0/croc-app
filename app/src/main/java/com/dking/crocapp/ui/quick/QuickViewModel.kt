@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.dking.crocapp.CrocApp
 import com.dking.crocapp.croc.CodePhraseGenerator
 import com.dking.crocapp.croc.CrocBinaryManager
-import com.dking.crocapp.croc.CrocEngine
 import com.dking.crocapp.croc.CrocProcess
 import com.dking.crocapp.croc.CrocTransferState
 import com.dking.crocapp.data.db.TransferHistory
@@ -36,7 +35,6 @@ data class QuickSharePreview(
 
 data class QuickUiState(
     val transferState: CrocTransferState = CrocTransferState.Idle,
-    val activeEngine: CrocEngine = CrocEngine.CURRENT,
     val quickSendCode: String = "",
     val quickReceiveCode: String = "",
     val activeCode: String = "",
@@ -150,14 +148,6 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
                         currentOutputDir = null
                         StorageCleaner.cleanSendStaging(getApplication<CrocApp>())
                     }
-                    is CrocTransferState.LegacyFallbackAvailable -> {
-                        _uiState.update {
-                            it.copy(
-                                statusMessage = "Older Croc Detected",
-                                statusDetail = "The other device is using an older croc version. Retry with legacy mode?"
-                            )
-                        }
-                    }
                     is CrocTransferState.Error -> {
                         StorageCleaner.cleanSendStaging(getApplication<CrocApp>())
                         _uiState.update {
@@ -193,7 +183,7 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun sendFiles(uris: List<Uri>, engine: CrocEngine? = null) {
+    fun sendFiles(uris: List<Uri>) {
         val code = _uiState.value.quickSendCode
         if (code.isBlank() || uris.isEmpty()) return
 
@@ -201,16 +191,8 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
         lastSendText = null
 
         viewModelScope.launch {
-            val targetEngine = engine ?: _uiState.value.activeEngine.takeIf { it == CrocEngine.LEGACY }
-                ?: if (prefsRepo.preferencesFlow.first().tryLegacyFirst) {
-                    CrocEngine.LEGACY
-                } else {
-                    CrocEngine.CURRENT
-                }
-
             _uiState.update {
                 it.copy(
-                    activeEngine = targetEngine,
                     lastAction = "send",
                     activeCode = code,
                     sharePreview = buildFileSharePreview(uris),
@@ -232,11 +214,11 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 return@launch
             }
-            crocProcess.send(filePaths, code, engine = targetEngine)
+            crocProcess.send(filePaths, code)
         }
     }
 
-    fun sendClipboardText(text: String, engine: CrocEngine? = null) {
+    fun sendClipboardText(text: String) {
         val code = _uiState.value.quickSendCode
         if (code.isBlank() || text.isBlank()) return
 
@@ -244,16 +226,8 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
         lastSendUris = emptyList()
 
         viewModelScope.launch {
-            val targetEngine = engine ?: _uiState.value.activeEngine.takeIf { it == CrocEngine.LEGACY }
-                ?: if (prefsRepo.preferencesFlow.first().tryLegacyFirst) {
-                    CrocEngine.LEGACY
-                } else {
-                    CrocEngine.CURRENT
-                }
-
             _uiState.update {
                 it.copy(
-                    activeEngine = targetEngine,
                     lastAction = "clipboard",
                     activeCode = code,
                     sharePreview = listOf(
@@ -268,7 +242,7 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
             }
             crocProcess.reset()
             kotlinx.coroutines.delay(50)
-            crocProcess.sendText(text, code, engine = targetEngine)
+            crocProcess.sendText(text, code)
         }
     }
 
@@ -283,13 +257,13 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
         return generated
     }
 
-    fun startReceive(engine: CrocEngine? = null) {
+    fun startReceive() {
         val code = _uiState.value.quickReceiveCode
         if (code.isBlank()) return
-        startReceiveInternal(code, "receive", engine)
+        startReceiveInternal(code, "receive")
     }
 
-    fun startReceiveWithCode(code: String, saveAsDefault: Boolean = false, engine: CrocEngine? = null) {
+    fun startReceiveWithCode(code: String, saveAsDefault: Boolean = false) {
         val parsedCode = QrCodeParser.parseCode(code).trim()
         if (parsedCode.isBlank()) return
         if (saveAsDefault) {
@@ -298,7 +272,7 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
             }
             _uiState.update { it.copy(quickReceiveCode = parsedCode) }
         }
-        startReceiveInternal(parsedCode, "receive", engine)
+        startReceiveInternal(parsedCode, "receive")
     }
 
     fun retrySend() {
@@ -306,34 +280,26 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
         when (state.lastAction) {
             "send" -> {
                 if (lastSendUris.isNotEmpty()) {
-                    sendFiles(lastSendUris, engine = state.activeEngine)
+                    sendFiles(lastSendUris)
                 }
             }
             "clipboard" -> {
                 if (!lastSendText.isNullOrBlank()) {
-                    sendClipboardText(lastSendText!!, engine = state.activeEngine)
+                    sendClipboardText(lastSendText!!)
                 }
             }
         }
     }
 
-    fun startReceiveFromQr(code: String, engine: CrocEngine? = null) {
-        startReceiveInternal(QrCodeParser.parseCode(code), "qr", engine)
+    fun startReceiveFromQr(code: String) {
+        startReceiveInternal(QrCodeParser.parseCode(code), "qr")
     }
 
-    private fun startReceiveInternal(code: String, action: String, engine: CrocEngine? = null) {
+    private fun startReceiveInternal(code: String, action: String) {
         val parsedCode = QrCodeParser.parseCode(code)
         viewModelScope.launch {
-            val targetEngine = engine ?: _uiState.value.activeEngine.takeIf { it == CrocEngine.LEGACY }
-                ?: if (prefsRepo.preferencesFlow.first().tryLegacyFirst) {
-                    CrocEngine.LEGACY
-                } else {
-                    CrocEngine.CURRENT
-                }
-
             _uiState.update {
                 it.copy(
-                    activeEngine = targetEngine,
                     lastAction = action,
                     activeCode = parsedCode,
                     sharePreview = emptyList(),
@@ -352,54 +318,7 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
             ).apply { mkdirs() }
             currentOutputDir = outputDir
 
-            crocProcess.receive(code, outputDir, engine = targetEngine)
-        }
-    }
-
-    fun toggleEngine() {
-        val next = if (_uiState.value.activeEngine == CrocEngine.CURRENT) CrocEngine.LEGACY else CrocEngine.CURRENT
-        _uiState.update { it.copy(activeEngine = next) }
-    }
-
-    fun setEngine(engine: CrocEngine) {
-        _uiState.update { it.copy(activeEngine = engine) }
-    }
-
-    fun switchToLegacyForNextReceive() {
-        crocProcess.reset()
-        currentOutputDir?.deleteRecursively()
-        currentOutputDir = null
-        _uiState.update {
-            it.copy(
-                activeEngine = CrocEngine.LEGACY,
-                activeCode = "",
-                lastAction = "",
-                transferState = CrocTransferState.Idle,
-                statusMessage = "Ready",
-                statusDetail = "Legacy Mode (v10.6) active. Tap Receive to enter code."
-            )
-        }
-    }
-
-    fun retryWithLegacy() {
-        val state = _uiState.value
-        when (state.lastAction) {
-            "send" -> {
-                if (lastSendUris.isNotEmpty()) {
-                    sendFiles(lastSendUris, engine = CrocEngine.LEGACY)
-                }
-            }
-            "clipboard" -> {
-                if (!lastSendText.isNullOrBlank()) {
-                    sendClipboardText(lastSendText!!, engine = CrocEngine.LEGACY)
-                }
-            }
-            "receive", "qr" -> {
-                val code = state.activeCode.ifBlank { state.quickReceiveCode }
-                if (code.isNotBlank()) {
-                    startReceiveInternal(code, state.lastAction, engine = CrocEngine.LEGACY)
-                }
-            }
+            crocProcess.receive(code, outputDir)
         }
     }
 
@@ -415,24 +334,16 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
         currentOutputDir?.deleteRecursively()
         currentOutputDir = null
         StorageCleaner.cleanSendStaging(getApplication<CrocApp>())
-        viewModelScope.launch {
-            val defaultEngine = if (prefsRepo.preferencesFlow.first().tryLegacyFirst) {
-                CrocEngine.LEGACY
-            } else {
-                CrocEngine.CURRENT
-            }
-            _uiState.update {
-                it.copy(
-                    activeEngine = defaultEngine,
-                    lastAction = "",
-                    sharePreview = emptyList(),
-                    statusMessage = "Ready",
-                    statusDetail = "Tap Send or Receive to start",
-                    activeCode = "",
-                    receivedText = null,
-                    receivedFiles = emptyList()
-                )
-            }
+        _uiState.update {
+            it.copy(
+                lastAction = "",
+                sharePreview = emptyList(),
+                statusMessage = "Ready",
+                statusDetail = "Tap Send or Receive to start",
+                activeCode = "",
+                receivedText = null,
+                receivedFiles = emptyList()
+            )
         }
     }
 

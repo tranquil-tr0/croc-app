@@ -2,7 +2,6 @@ package com.dking.crocapp.ui.settings
 
 import com.dking.crocapp.data.preferences.UserPreferencesRepository.CrocPreferences
 import com.dking.crocapp.ui.settings.SettingsNotice.HTTP_PROXY_IGNORED
-import com.dking.crocapp.ui.settings.SettingsNotice.LEGACY_IGNORES_TRANSPORT
 import com.dking.crocapp.ui.settings.SettingsNotice.LOCAL_ONLY_IGNORES_RELAY
 import com.dking.crocapp.ui.settings.SettingsNotice.LOCAL_ONLY_IGNORES_TRANSPORT
 import com.dking.crocapp.ui.settings.SettingsNotice.OLD_DEFAULT_RELAY
@@ -45,17 +44,9 @@ class SettingsNoticesTest {
         assertEquals(
             listOf(LOCAL_ONLY_IGNORES_RELAY, LOCAL_ONLY_IGNORES_TRANSPORT),
             settingsNotices(
-                CrocPreferences(forceLocal = true, socks5Proxy = "127.0.0.1:9050", transferTransport = "derp", tryLegacyFirst = true)
+                CrocPreferences(forceLocal = true, socks5Proxy = "127.0.0.1:9050", transferTransport = "derp")
             )
         )
         assertEquals(emptyList<SettingsNotice>(), settingsNotices(CrocPreferences(forceLocal = true)))
-    }
-
-    @Test
-    fun legacyFirstWithTransport_flagsTransportIgnoredByLegacy() {
-        assertEquals(
-            listOf(LEGACY_IGNORES_TRANSPORT),
-            settingsNotices(CrocPreferences(tryLegacyFirst = true, transferTransport = "relay"))
-        )
     }
 }

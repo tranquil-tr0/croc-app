@@ -9,24 +9,15 @@ If you want to help:
 
 ## Vendoring Go Dependencies (F-Droid Compliance)
 
-croc-app includes dual croc engines built from vendored source:
-- **Current engine** (`v11+`): located in `third_party/croc-src`
-- **Legacy engine** (`v10.6.0` - frozen): located in `third_party/croc-src-legacy`
+croc-app builds croc from vendored source in `third_party/croc-src`.
 
-Whenever dependencies are updated or re-vendored, you must commit the `vendor/` output for both trees:
+Whenever dependencies are updated or re-vendored, you must commit the `vendor/` output:
 
 ```bash
-# Current engine
 cd third_party/croc-src
 go mod tidy
 go mod vendor
 python3 ../../tools/prepare-croc-vendor.py  # needs Python 3.14+
-go build ./...
-
-# Legacy engine (frozen - only if repairing vendoring)
-cd ../croc-src-legacy
-go mod tidy
-go mod vendor
 go build ./...
 ```
 

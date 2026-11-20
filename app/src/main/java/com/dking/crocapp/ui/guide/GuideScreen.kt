@@ -242,11 +242,6 @@ fun GuideScreen(
                     solution = stringResource(R.string.guide_err_flate_solution)
                 )
                 GuideErrorItem(
-                    title = stringResource(R.string.guide_err_legacy_title),
-                    cause = stringResource(R.string.guide_err_legacy_cause),
-                    solution = stringResource(R.string.guide_err_legacy_solution)
-                )
-                GuideErrorItem(
                     title = stringResource(R.string.guide_err_file_missing_title),
                     cause = stringResource(R.string.guide_err_file_missing_cause),
                     solution = stringResource(R.string.guide_err_file_missing_solution)

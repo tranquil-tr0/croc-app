@@ -337,22 +337,6 @@
     <string name="setup_guide2_bullet2">Later launches reuse that engine, so send and receive feel immediate.</string>
     <string name="setup_guide2_bullet3">Keeping the app open on this screen is enough. No extra action needed.</string>
 
-    <!-- ════ Dual Engine & Legacy Support ════ -->
-    <string name="transfer_legacy_fallback_title">Older Croc Detected</string>
-    <string name="transfer_legacy_fallback_desc">The other device is using an older croc version.</string>
-    <string name="transfer_legacy_fallback_send_desc">The recipient is using an older croc version (v10 or earlier). You can switch to Legacy Mode to send.</string>
-    <string name="transfer_legacy_fallback_receive_desc">The sender is using an older croc version (v10 or earlier). You can Switch to Legacy Mode to receive.</string>
-    <string name="action_retry_legacy">Retry (Legacy)</string>
-    <string name="action_send_legacy">Send in Legacy Mode</string>
-    <string name="action_switch_legacy_receive">Enter New Code (Legacy Mode)</string>
-    <string name="badge_legacy_mode">Legacy</string>
-    <string name="badge_current_mode">Latest</string>
-    <string name="settings_try_legacy_first">Try legacy croc first</string>
-    <string name="settings_try_legacy_first_desc">Attempt transfers using legacy croc (v10.6.0) first instead of waiting for version mismatch. Default is off.</string>
-    <string name="settings_clear_legacy_binary">Clear cached legacy engine</string>
-    <string name="settings_clear_legacy_binary_desc">Delete the downloaded legacy croc binary from device storage.</string>
-    <string name="settings_clear_legacy_button">Clear</string>
-
     <!-- ════ New Settings: Proxy, Network & Transfer Options ════ -->
     <string name="settings_proxy_privacy">Proxy &amp; Privacy</string>
     <string name="settings_socks5_proxy">SOCKS5 Proxy</string>
@@ -370,7 +354,6 @@
     <string name="settings_notice_http_proxy_ignored">The HTTP proxy is ignored because a SOCKS5 proxy is set.</string>
     <string name="settings_notice_local_only_ignores_relay">Local only is on, so the relay and proxy settings are not used.</string>
     <string name="settings_notice_local_only_ignores_transport">Local only is on, so the transfer transport is ignored.</string>
-    <string name="settings_notice_legacy_ignores_transport">The legacy engine ignores the transfer transport; it only applies when the current engine is used.</string>
     <string name="settings_sender_ip">Sender IP Override</string>
     <string name="settings_sender_ip_desc">Explicitly set sender IP:port if known (e.g. behind complex NAT or VPN)</string>
     <string name="settings_sender_ip_placeholder">e.g. 192.168.1.50:9009</string>
@@ -506,9 +489,6 @@
     <string name="guide_err_flate_title">Error: \"flate: corrupt input\" / Decompression Failed</string>
     <string name="guide_err_flate_cause">Compressed data was corrupted during network transit or an incompatible compression algorithm was used.</string>
     <string name="guide_err_flate_solution">Tap Retry to try again. If the error repeats, open Settings -&gt; Advanced Settings and enable \"Disable Compression\" to transfer files without compression.</string>
-    <string name="guide_err_legacy_title">\"Older croc Detected\" / Version Mismatch</string>
-    <string name="guide_err_legacy_cause">One device is running croc v11 (new protocol) and the other is running croc v10 or earlier.</string>
-    <string name="guide_err_legacy_solution">Tap \"Retry (Legacy)\" on the transfer card, or turn on \"Try legacy croc first\" in Settings.</string>
     <string name="guide_err_file_missing_title">File Not Found / Storage Permission Error</string>
     <string name="guide_err_file_missing_cause">The selected file was moved or deleted, or croc-app lacks permission to save to the designated folder.</string>
     <string name="guide_err_file_missing_solution">Confirm the file still exists on the device, or re-select your Download Folder in Settings.</string>

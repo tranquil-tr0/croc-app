@@ -11,7 +11,6 @@ enum class SettingsNotice(@StringRes val message: Int) {
     HTTP_PROXY_IGNORED(R.string.settings_notice_http_proxy_ignored),
     LOCAL_ONLY_IGNORES_RELAY(R.string.settings_notice_local_only_ignores_relay),
     LOCAL_ONLY_IGNORES_TRANSPORT(R.string.settings_notice_local_only_ignores_transport),
-    LEGACY_IGNORES_TRANSPORT(R.string.settings_notice_legacy_ignores_transport),
 }
 
 /** The relay croc used before 11.2; peers on croc 11.2+ meet on the automatic relays instead. */
@@ -32,7 +31,5 @@ fun settingsNotices(prefs: CrocPreferences): List<SettingsNotice> = buildList {
     if (prefs.forceLocal) {
         if (relay || relay6 || socks5 || http) add(SettingsNotice.LOCAL_ONLY_IGNORES_RELAY)
         if (customTransport) add(SettingsNotice.LOCAL_ONLY_IGNORES_TRANSPORT)
-    } else if (prefs.tryLegacyFirst && customTransport) {
-        add(SettingsNotice.LEGACY_IGNORES_TRANSPORT)
     }
 }

@@ -86,6 +86,13 @@ But `croc-gui` is older, written in Go, and lacks a number of features and UX im
 - Support deep-links
 - Material 3 UI designed specifically for Android
 
+## Compatibility with other croc versions
+
+croc-app runs croc 11 and works with any peer on croc 11 or newer.
+
+- **croc v10 and earlier are not supported.** croc 11 changed its key exchange and encryption for security reasons, so v10 peers can't connect to it. Upgrade the other device to croc 11.
+- **croc 11 before 11.2** only uses the `croc.schollz.com` relay, while newer versions pick a public relay from the code. Without a relay setting, an older peer meets croc-app for only about 1 code in 4. Set the relay to `croc.schollz.com:9009` in Settings, or upgrade the peer.
+
 ## Current version
 
 - Version name: `6.1.0`

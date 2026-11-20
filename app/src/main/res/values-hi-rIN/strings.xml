@@ -315,20 +315,6 @@
     <string name="setup_guide2_bullet3">इस स्क्रीन पर ऐप खुला रखना काफ़ी है। कोई अतिरिक्त काम नहीं।</string>
 
     <!-- ════ डुअल इंजन और लीगेसी सपोर्ट ════ -->
-    <string name="transfer_legacy_fallback_title">पुराना Croc मिला</string>
-    <string name="transfer_legacy_fallback_desc">दूसरा डिवाइस croc का पुराना वर्ज़न इस्तेमाल कर रहा है।</string>
-    <string name="transfer_legacy_fallback_send_desc">पाने वाला पुराना croc वर्ज़न (v10 या उससे पहले) इस्तेमाल कर रहा है। आप भेजने के लिए लीगेसी मोड पर स्विच कर सकते हैं।</string>
-    <string name="transfer_legacy_fallback_receive_desc">भेजने वाला पुराना croc वर्ज़न (v10 या उससे पहले) इस्तेमाल कर रहा है। आप पाने के लिए लीगेसी मोड पर स्विच कर सकते हैं।</string>
-    <string name="action_retry_legacy">दोबारा कोशिश (लीगेसी)</string>
-    <string name="action_send_legacy">लीगेसी मोड में भेजें</string>
-    <string name="action_switch_legacy_receive">नया कोड डालें (लीगेसी मोड)</string>
-    <string name="badge_legacy_mode">लीगेसी</string>
-    <string name="badge_current_mode">नवीनतम</string>
-    <string name="settings_try_legacy_first">पहले लीगेसी croc आज़माएँ</string>
-    <string name="settings_try_legacy_first_desc">वर्ज़न मिसमैच का इंतज़ार करने के बजाय पहले लीगेसी croc (v10.6.0) से ट्रांसफ़र करें। डिफ़ॉल्ट रूप से बंद है।</string>
-    <string name="settings_clear_legacy_binary">कैश किया गया लीगेसी इंजन हटाएँ</string>
-    <string name="settings_clear_legacy_binary_desc">डिवाइस स्टोरेज से डाउनलोड की गई लीगेसी croc बाइनरी हटाएँ।</string>
-    <string name="settings_clear_legacy_button">हटाएँ</string>
 
     <!-- ════ नए सेटिंग्स: प्रॉक्सी, नेटवर्क और ट्रांसफ़र विकल्प ════ -->
     <string name="settings_proxy_privacy">प्रॉक्सी और गोपनीयता</string>
@@ -347,7 +333,6 @@
     <string name="settings_notice_http_proxy_ignored">SOCKS5 प्रॉक्सी सेट होने के कारण HTTP प्रॉक्सी को अनदेखा किया जाता है।</string>
     <string name="settings_notice_local_only_ignores_relay">केवल लोकल चालू है, इसलिए रिले और प्रॉक्सी सेटिंग्स इस्तेमाल नहीं होतीं।</string>
     <string name="settings_notice_local_only_ignores_transport">केवल लोकल चालू है, इसलिए ट्रांसफ़र ट्रांसपोर्ट को अनदेखा किया जाता है।</string>
-    <string name="settings_notice_legacy_ignores_transport">लेगेसी इंजन ट्रांसफ़र ट्रांसपोर्ट को अनदेखा करता है; यह केवल वर्तमान इंजन पर लागू होता है।</string>
     <string name="settings_sender_ip">सेंडर IP ओवरराइड</string>
     <string name="settings_sender_ip_desc">यदि ज्ञात हो तो सेंडर IP:पोर्ट सीधे सेट करें (NAT या VPN के पीछे)</string>
     <string name="settings_sender_ip_placeholder">उदा. 192.168.1.50:9009</string>
@@ -483,9 +468,6 @@
     <string name="guide_err_flate_title">त्रुटि: \"flate: corrupt input\" / डिकंप्रेशन विफल</string>
     <string name="guide_err_flate_cause">नेटवर्क ट्रांजिट के दौरान कंप्रेस्ड डेटा दूषित हो गया या असंगत संपीड़न विधि का उपयोग किया गया था।</string>
     <string name="guide_err_flate_solution">दोबारा प्रयास करने के लिए पुनः प्रयास दबाएं। यदि समस्या बनी रहती है, तो सेटिंग्स -&gt; उन्नत सेटिंग्स में जाएँ और बिना संपीड़न के फ़ाइलें भेजने के लिए \"कम्प्रेशन बंद करें\" चालू करें।</string>
-    <string name="guide_err_legacy_title">\"पुराना croc मिला\" / संस्करण बेमेल</string>
-    <string name="guide_err_legacy_cause">एक डिवाइस croc v11 (नया प्रोटोकॉल) चला रहा है और दूसरा croc v10 या पुराना चला रहा है।</string>
-    <string name="guide_err_legacy_solution">ट्रांसफ़र कार्ड पर \"पुनः प्रयास करें (लेगेसी)\" दबाएं, या सेटिंग्स में \"पहले लेगेसी croc आज़माएं\" चालू करें।</string>
     <string name="guide_err_file_missing_title">फ़ाइल नहीं मिली / स्टोरेज अनुमति त्रुटि</string>
     <string name="guide_err_file_missing_cause">चुनी गई फ़ाइल को स्थानांतरित या हटा दिया गया, या croc-app के पास चुने गए फ़ोल्डर में सहेजने की अनुमति नहीं है।</string>
     <string name="guide_err_file_missing_solution">पुष्टि करें कि फ़ाइल डिवाइस पर मौजूद है, या सेटिंग्स में जाकर अपना डाउनलोड फ़ोल्डर फिर से चुनें।</string>

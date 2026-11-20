@@ -37,7 +37,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -89,7 +88,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import com.dking.crocapp.R
 import com.dking.crocapp.croc.CrocTransferState
-import com.dking.crocapp.ui.components.EngineBadge
 import com.dking.crocapp.ui.components.TransferProgressCard
 import com.dking.crocapp.ui.components.formatBytes
 import com.dking.crocapp.ui.components.progressBorder
@@ -137,12 +135,10 @@ fun ReceiveScreen(
     val isTransferFinished = uiState.transferState is CrocTransferState.Completed ||
             uiState.transferState is CrocTransferState.Error ||
             uiState.transferState is CrocTransferState.Cancelled
-    val isLegacyFallback = uiState.transferState is CrocTransferState.LegacyFallbackAvailable
-    val showTransferSection = isTransferActive || isTransferFinished || isLegacyFallback
+    val showTransferSection = isTransferActive || isTransferFinished
     val canReceive = uiState.codePhrase.isNotBlank()
     val fabLabel = when (uiState.transferState) {
         is CrocTransferState.Completed -> stringResource(R.string.receive_again)
-        is CrocTransferState.LegacyFallbackAvailable -> stringResource(R.string.action_retry_legacy)
         is CrocTransferState.Error, CrocTransferState.Cancelled -> stringResource(R.string.action_retry)
         else -> stringResource(R.string.nav_receive)
     }
@@ -187,23 +183,19 @@ fun ReceiveScreen(
             if (!isTransferActive) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        if (isLegacyFallback) {
-                            viewModel.retryWithLegacy()
+                        if (uiState.codePhrase.isBlank()) {
+                            highlightCodeInput = true
+                            codeFocusRequester.requestFocus()
                         } else {
-                            if (uiState.codePhrase.isBlank()) {
-                                highlightCodeInput = true
-                                codeFocusRequester.requestFocus()
-                            } else {
-                                if (isTransferFinished) {
-                                    viewModel.dismissTransferResult()
-                                }
-                                viewModel.startReceive()
+                            if (isTransferFinished) {
+                                viewModel.dismissTransferResult()
                             }
+                            viewModel.startReceive()
                         }
                     },
                     icon = {
                         Icon(
-                            if (isLegacyFallback) Icons.Rounded.History else Icons.Rounded.Download,
+                            Icons.Rounded.Download,
                             contentDescription = null
                         )
                     },
@@ -213,7 +205,7 @@ fun ReceiveScreen(
                     elevation = FloatingActionButtonDefaults.elevation(
                         defaultElevation = 3.dp
                     ),
-                    expanded = canReceive || isLegacyFallback
+                    expanded = canReceive
                 )
             }
         }
@@ -278,11 +270,6 @@ fun ReceiveScreen(
                                 )
                             }
                         }
-                        EngineBadge(
-                            engine = uiState.activeEngine,
-                            onClick = if (!isTransferActive) { { viewModel.toggleEngine() } } else null,
-                            showCurrentMode = true
-                        )
                     }
 
                     OutlinedTextField(
@@ -455,10 +442,7 @@ fun ReceiveScreen(
                     TransferProgressCard(
                         state = uiState.transferState,
                         isSending = false,
-                        onCancel = { viewModel.cancelTransfer() },
-                        onRetryLegacy = { viewModel.retryWithLegacy() },
-                        onSwitchToLegacy = { viewModel.switchToLegacyForNextReceive() },
-                        activeEngine = uiState.activeEngine
+                        onCancel = { viewModel.cancelTransfer() }
                     )
                     if (isTransferFinished) {
                         OutlinedButton(

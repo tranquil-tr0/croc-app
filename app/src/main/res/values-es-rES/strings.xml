@@ -315,20 +315,6 @@
     <string name="setup_guide2_bullet3">Mantener la aplicación abierta en esta pantalla es suficiente. No se necesita acción extra.</string>
 
     <!-- ════ Motor dual y compatibilidad heredada ════ -->
-    <string name="transfer_legacy_fallback_title">Croc antiguo detectado</string>
-    <string name="transfer_legacy_fallback_desc">El otro dispositivo usa una versión anterior de croc.</string>
-    <string name="transfer_legacy_fallback_send_desc">El destinatario usa una versión anterior de croc (v10 o anterior). Puedes cambiar al modo heredado para enviar.</string>
-    <string name="transfer_legacy_fallback_receive_desc">El remitente usa una versión anterior de croc (v10 o anterior). Puedes cambiar al modo heredado para recibir.</string>
-    <string name="action_retry_legacy">Reintentar (Heredado)</string>
-    <string name="action_send_legacy">Enviar en modo heredado</string>
-    <string name="action_switch_legacy_receive">Introducir nuevo código (modo heredado)</string>
-    <string name="badge_legacy_mode">Heredado</string>
-    <string name="badge_current_mode">Actual</string>
-    <string name="settings_try_legacy_first">Probar croc heredado primero</string>
-    <string name="settings_try_legacy_first_desc">Intentar transferencias usando el croc heredado (v10.6.0) primero en lugar de esperar una incompatibilidad de versiones. Desactivado por defecto.</string>
-    <string name="settings_clear_legacy_binary">Borrar motor heredado en caché</string>
-    <string name="settings_clear_legacy_binary_desc">Elimina el binario de croc heredado descargado del almacenamiento del dispositivo.</string>
-    <string name="settings_clear_legacy_button">Borrar</string>
 
     <!-- ════ Nuevos ajustes: Proxy, red y opciones de transferencia ════ -->
     <string name="settings_proxy_privacy">Proxy y privacidad</string>
@@ -347,7 +333,6 @@
     <string name="settings_notice_http_proxy_ignored">El proxy HTTP se ignora porque hay un proxy SOCKS5 configurado.</string>
     <string name="settings_notice_local_only_ignores_relay">Solo local está activado, así que no se usan los ajustes de relé ni de proxy.</string>
     <string name="settings_notice_local_only_ignores_transport">Solo local está activado, así que se ignora el transporte de transferencia.</string>
-    <string name="settings_notice_legacy_ignores_transport">El motor heredado ignora el transporte de transferencia; solo se aplica con el motor actual.</string>
     <string name="settings_sender_ip">Anulación de IP del remitente</string>
     <string name="settings_sender_ip_desc">Establecer explícitamente IP:puerto del remitente si se conoce (detrás de NAT compleja o VPN)</string>
     <string name="settings_sender_ip_placeholder">p. ej., 192.168.1.50:9009</string>
@@ -483,9 +468,6 @@
     <string name="guide_err_flate_title">Error: \"flate: corrupt input\" / Fallo de descompresión</string>
     <string name="guide_err_flate_cause">Los datos comprimidos se dañaron en tránsito o se utilizó un método de compresión incompatible.</string>
     <string name="guide_err_flate_solution">Pulsa Reintentar para intentarlo de nuevo. Si el fallo continúa, entra en Ajustes -&gt; Ajustes avanzados y activa \"Deshabilitar compresión\" para transferir archivos sin comprimir.</string>
-    <string name="guide_err_legacy_title">\"croc anterior detectado\" / Discrepancia de versión</string>
-    <string name="guide_err_legacy_cause">Un dispositivo ejecuta croc v11 (nuevo protocolo) y el otro croc v10 o anterior.</string>
-    <string name="guide_err_legacy_solution">Pulsa \"Reintentar (Legacy)\" en la tarjeta de transferencia o activa \"Probar croc heredado primero\" en Ajustes.</string>
     <string name="guide_err_file_missing_title">Archivo no encontrado / Error de permisos de almacenamiento</string>
     <string name="guide_err_file_missing_cause">El archivo seleccionado se movió o eliminó, o croc-app no tiene permiso para guardar en la carpeta indicada.</string>
     <string name="guide_err_file_missing_solution">Confirma que el archivo aún exista en el dispositivo o vuelve a seleccionar tu Carpeta de Descargas en Ajustes.</string>

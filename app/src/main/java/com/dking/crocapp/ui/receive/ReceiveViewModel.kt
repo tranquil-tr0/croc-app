@@ -7,7 +7,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dking.crocapp.CrocApp
 import com.dking.crocapp.croc.CrocBinaryManager
-import com.dking.crocapp.croc.CrocEngine
 import com.dking.crocapp.croc.CrocProcess
 import com.dking.crocapp.croc.CrocTransferState
 import com.dking.crocapp.data.db.TransferHistory
@@ -33,7 +32,6 @@ data class ReceivedFile(
 data class ReceiveUiState(
     val codePhrase: String = "",
     val transferState: CrocTransferState = CrocTransferState.Idle,
-    val activeEngine: CrocEngine = CrocEngine.CURRENT,
     val defaultCodePhrase: String = "",
     val savedCodePhrases: List<String> = emptyList(),
     val receivedFiles: List<ReceivedFile> = emptyList(),
@@ -114,7 +112,7 @@ class ReceiveViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(codePhrase = parsed) }
     }
 
-    fun startReceiveWithCode(code: String, saveAsDefault: Boolean = false, engine: CrocEngine? = null) {
+    fun startReceiveWithCode(code: String, saveAsDefault: Boolean = false) {
         val parsed = QrCodeParser.parseCode(code).trim()
         if (parsed.isBlank()) return
         updateCodePhrase(parsed)
@@ -123,7 +121,7 @@ class ReceiveViewModel(application: Application) : AndroidViewModel(application)
                 prefsRepo.updateDefaultCodePhrase(parsed)
             }
         }
-        startReceive(engine)
+        startReceive()
     }
 
     fun saveCurrentCode() {
@@ -132,42 +130,11 @@ class ReceiveViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun toggleEngine() {
-        val next = if (_uiState.value.activeEngine == CrocEngine.CURRENT) CrocEngine.LEGACY else CrocEngine.CURRENT
-        _uiState.update { it.copy(activeEngine = next) }
-    }
-
-    fun setEngine(engine: CrocEngine) {
-        _uiState.update { it.copy(activeEngine = engine) }
-    }
-
-    fun switchToLegacyForNextReceive() {
-        crocProcess.reset()
-        currentOutputDir?.deleteRecursively()
-        currentOutputDir = null
-        _uiState.update {
-            it.copy(
-                activeEngine = CrocEngine.LEGACY,
-                codePhrase = "",
-                transferState = CrocTransferState.Idle
-            )
-        }
-    }
-
-    fun startReceive(engine: CrocEngine? = null) {
+    fun startReceive() {
         val code = _uiState.value.codePhrase.trim()
         if (code.isBlank()) return
 
         viewModelScope.launch {
-            val targetEngine = engine ?: _uiState.value.activeEngine.takeIf { it == CrocEngine.LEGACY }
-                ?: if (prefsRepo.preferencesFlow.first().tryLegacyFirst) {
-                    CrocEngine.LEGACY
-                } else {
-                    CrocEngine.CURRENT
-                }
-
-            _uiState.update { it.copy(activeEngine = targetEngine) }
-
             // Always reset before starting a new transfer
             crocProcess.reset()
             kotlinx.coroutines.delay(50)
@@ -181,13 +148,8 @@ class ReceiveViewModel(application: Application) : AndroidViewModel(application)
             currentOutputDir = outputDir
 
             _uiState.update { it.copy(receivedFiles = emptyList()) }
-            crocProcess.receive(code, outputDir, engine = targetEngine)
+            crocProcess.receive(code, outputDir)
         }
-    }
-
-    fun retryWithLegacy() {
-        _uiState.update { it.copy(activeEngine = CrocEngine.LEGACY) }
-        startReceive(engine = CrocEngine.LEGACY)
     }
 
     fun cancelTransfer() {

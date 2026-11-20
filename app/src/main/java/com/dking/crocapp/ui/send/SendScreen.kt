@@ -55,7 +55,6 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FolderOpen
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.Link
@@ -130,9 +129,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dking.crocapp.R
-import com.dking.crocapp.croc.CrocEngine
 import com.dking.crocapp.croc.CrocTransferState
-import com.dking.crocapp.ui.components.EngineBadge
 import com.dking.crocapp.ui.components.QrCodeExpandedDialog
 import com.dking.crocapp.ui.components.QrCodeImage
 import com.dking.crocapp.util.QrCodeParser
@@ -184,14 +181,12 @@ fun SendScreen(
             isStoreCompleted ||
             uiState.transferState is CrocTransferState.Error ||
             uiState.transferState is CrocTransferState.Cancelled
-    val isLegacyFallback = uiState.transferState is CrocTransferState.LegacyFallbackAvailable
-    val showTransferSection = isTransferActive || isTransferFinished || isLegacyFallback
+    val showTransferSection = isTransferActive || isTransferFinished
     val canSend = (uiState.isStoreMode || uiState.codePhrase.isNotBlank()) && uiState.hasContent
 
     val fabLabel = when {
         isStoreCompleted -> stringResource(R.string.mode_normal_fab)
         isDirectCompleted -> stringResource(R.string.send_again)
-        isLegacyFallback -> stringResource(R.string.action_retry_legacy)
         uiState.transferState is CrocTransferState.Error || uiState.transferState is CrocTransferState.Cancelled -> stringResource(R.string.action_retry)
         uiState.isStoreMode -> stringResource(R.string.send_action_store)
         else -> stringResource(R.string.action_send)
@@ -238,9 +233,7 @@ fun SendScreen(
             if (!isTransferActive) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        if (isLegacyFallback) {
-                            viewModel.retryWithLegacy()
-                        } else if (isStoreCompleted) {
+                        if (isStoreCompleted) {
                             viewModel.dismissTransferResult()
                             viewModel.setDeliveryMode(DeliveryMode.DIRECT)
                         } else {
@@ -253,7 +246,6 @@ fun SendScreen(
                     icon = {
                         Icon(
                             when {
-                                isLegacyFallback -> Icons.Rounded.History
                                 isStoreCompleted -> Icons.AutoMirrored.Rounded.Send
                                 uiState.isStoreMode -> Icons.Rounded.CloudUpload
                                 else -> Icons.AutoMirrored.Rounded.Send
@@ -267,7 +259,7 @@ fun SendScreen(
                     elevation = FloatingActionButtonDefaults.elevation(
                         defaultElevation = 3.dp
                     ),
-                    expanded = canSend || isLegacyFallback || isStoreCompleted
+                    expanded = canSend || isStoreCompleted
                 )
             }
         }
@@ -633,9 +625,7 @@ fun SendScreen(
                         TransferProgressCard(
                             state = uiState.transferState,
                             isSending = true,
-                            onCancel = { viewModel.cancelTransfer() },
-                            onRetryLegacy = { viewModel.retryWithLegacy() },
-                            activeEngine = uiState.activeEngine
+                            onCancel = { viewModel.cancelTransfer() }
                         )
                         if (isTransferFinished) {
                             OutlinedButton(
@@ -693,11 +683,6 @@ fun SendScreen(
                                     )
                                 }
                             }
-                            EngineBadge(
-                                engine = uiState.activeEngine,
-                                onClick = if (!isTransferActive) { { viewModel.toggleEngine() } } else null,
-                                showCurrentMode = true
-                            )
                         }
                     OutlinedTextField(
                         value = uiState.codePhrase,
@@ -1223,11 +1208,6 @@ private fun StoreConfigurationCard(
                         )
                     }
                 }
-                EngineBadge(
-                    engine = CrocEngine.CURRENT,
-                    onClick = null,
-                    showCurrentMode = true
-                )
             }
 
             HorizontalDivider(
@@ -1498,11 +1478,6 @@ private fun StoreCompletedCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                EngineBadge(
-                    engine = CrocEngine.CURRENT,
-                    onClick = null,
-                    showCurrentMode = true
-                )
             }
 
             HorizontalDivider(

@@ -35,7 +35,6 @@ class UserPreferencesRepository(private val context: Context) {
         val QUICK_SEND_CODE = stringPreferencesKey("quick_send_code")
         val QUICK_RECEIVE_CODE = stringPreferencesKey("quick_receive_code")
         val RECEIVE_LOCATION_URI = stringPreferencesKey("receive_location_uri")
-        val TRY_LEGACY_FIRST = booleanPreferencesKey("try_legacy_first")
         val SOCKS5_PROXY = stringPreferencesKey("socks5_proxy")
         val HTTP_PROXY = stringPreferencesKey("http_proxy")
         val RECEIVE_CONFLICT_STRATEGY = stringPreferencesKey("receive_conflict_strategy")
@@ -68,7 +67,6 @@ class UserPreferencesRepository(private val context: Context) {
         val quickSendCode: String = "",
         val quickReceiveCode: String = "",
         val receiveLocationUri: String = "",
-        val tryLegacyFirst: Boolean = false,
         val socks5Proxy: String = "",
         val httpProxy: String = "",
         val receiveConflictStrategy: String = "rename",
@@ -109,7 +107,6 @@ class UserPreferencesRepository(private val context: Context) {
                     disableCompression ||
                     zipFolderBeforeSend ||
                     uploadThrottle.isNotBlank() ||
-                    tryLegacyFirst ||
                     defaultStoreExpiration != "1d" ||
                     defaultStoreDownloads != 1 ||
                     customStoreUrl.isNotBlank() ||
@@ -139,7 +136,6 @@ class UserPreferencesRepository(private val context: Context) {
             quickSendCode = normalizeCodePhrase(prefs[QUICK_SEND_CODE] ?: ""),
             quickReceiveCode = normalizeCodePhrase(prefs[QUICK_RECEIVE_CODE] ?: ""),
             receiveLocationUri = prefs[RECEIVE_LOCATION_URI] ?: "",
-            tryLegacyFirst = prefs[TRY_LEGACY_FIRST] ?: false,
             socks5Proxy = prefs[SOCKS5_PROXY] ?: "",
             httpProxy = prefs[HTTP_PROXY] ?: "",
             receiveConflictStrategy = prefs[RECEIVE_CONFLICT_STRATEGY] ?: "rename",
@@ -264,10 +260,6 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
-    suspend fun updateTryLegacyFirst(value: Boolean) {
-        context.dataStore.edit { it[TRY_LEGACY_FIRST] = value }
-    }
-
     suspend fun updateSocks5Proxy(value: String) {
         context.dataStore.edit { it[SOCKS5_PROXY] = value.trim() }
     }
@@ -346,7 +338,6 @@ class UserPreferencesRepository(private val context: Context) {
             prefs[DISABLE_COMPRESSION] = false
             prefs[ZIP_FOLDER_BEFORE_SEND] = false
             prefs.remove(UPLOAD_THROTTLE)
-            prefs[TRY_LEGACY_FIRST] = false
             prefs[DEFAULT_STORE_EXPIRATION] = "1d"
             prefs[DEFAULT_STORE_DOWNLOADS] = 1
             prefs.remove(CUSTOM_STORE_URL)

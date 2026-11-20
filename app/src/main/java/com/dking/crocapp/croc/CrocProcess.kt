@@ -35,24 +35,17 @@ class CrocProcess(
         internal const val MAX_SECURE_CHANNEL_RETRIES = 2
         internal const val INITIAL_BACKOFF_MS = 1000L
 
-        /** The relay croc v10 uses by default; v10 has no public relay pool. */
-        internal const val LEGACY_DEFAULT_RELAY = "croc.schollz.com:9009"
-
         /**
          * Only relays the user set are passed. With neither set, croc 11 picks the public relay
          * (N.getcroc.com) from the code like the stock CLI; any relay flag turns that off.
          * A set relay address always wins over the IPv6 relay, which is then not passed.
-         * The legacy engine always gets `--relay`, so its default relay is resolved by the app:
-         * croc v10 cannot resolve hostnames on Android without `--internal-dns`.
          */
         internal fun relayFlags(
             relayAddress: String,
             relay6Address: String,
-            engine: CrocEngine,
             resolve: (String) -> String = { it }
         ): List<String> = buildList {
             val relay = relayAddress.trim()
-                .ifEmpty { if (engine == CrocEngine.LEGACY) LEGACY_DEFAULT_RELAY else "" }
             val relay6 = relay6Address.trim()
             if (relay.isNotEmpty()) {
                 add("--relay"); add(resolve(relay))
@@ -147,7 +140,6 @@ class CrocProcess(
         val peerIp: String = "",
         val totalFileCount: Int = 0,
         val receivedText: String? = null,
-        val isLegacyFallback: Boolean = false,
         val announcedCode: String = "",
         val isStoreTransfer: Boolean = false,
         val storeBrowserLink: String = "",
@@ -186,16 +178,12 @@ class CrocProcess(
 
     /**
      * Build common global flags from preferences.
-     * Only includes flags that exist in both the current and legacy croc engines.
      */
-    private fun buildGlobalFlags(
-        prefs: UserPreferencesRepository.CrocPreferences,
-        engine: CrocEngine
-    ): List<String> {
+    private fun buildGlobalFlags(prefs: UserPreferencesRepository.CrocPreferences): List<String> {
         return buildList {
             if (prefs.useInternalDns) add("--internal-dns")
 
-            addAll(relayFlagsFor(prefs, engine))
+            addAll(relayFlagsFor(prefs))
             if (prefs.relayPassword.isNotBlank()) {
                 add("--pass"); add(prefs.relayPassword)
             }
@@ -235,15 +223,12 @@ class CrocProcess(
         }
     }
 
-    private fun relayFlagsFor(
-        prefs: UserPreferencesRepository.CrocPreferences,
-        engine: CrocEngine
-    ): List<String> {
+    private fun relayFlagsFor(prefs: UserPreferencesRepository.CrocPreferences): List<String> {
         // When a proxy is configured (SOCKS5 or HTTP CONNECT), do not pre-resolve the relay
         // address to an IP literal. Remote DNS resolution must happen on the proxy to prevent
         // local DNS leaks and allow proxy-side routing.
         val hasProxy = prefs.socks5Proxy.isNotBlank() || prefs.httpProxy.isNotBlank()
-        return relayFlags(prefs.relayAddress, prefs.relay6Address, engine) {
+        return relayFlags(prefs.relayAddress, prefs.relay6Address) {
             if (hasProxy) it else resolveRelayAddress(it)
         }
     }
@@ -286,22 +271,22 @@ class CrocProcess(
         return host.matches(Regex("""\d{1,3}(\.\d{1,3}){3}""")) || ":" in host
     }
     
-    suspend fun send(filePaths: List<String>, code: String? = null, engine: CrocEngine = CrocEngine.CURRENT) {
+    suspend fun send(filePaths: List<String>, code: String? = null) {
         withContext(Dispatchers.IO) {
             try {
                 _state.value = CrocTransferState.Preparing
                 val prefs = prefsRepository.preferencesFlow.first()
-                val binaryPath = binaryManager.getBinaryPath(engine)
+                val binaryPath = binaryManager.getBinaryPath()
 
                 val command = mutableListOf(binaryPath, "--yes").apply {
-                    addAll(buildGlobalFlags(prefs, engine))
+                    addAll(buildGlobalFlags(prefs))
                     add("--ignore-stdin")
                     add("send")
                     // Only disable local relay if not forcing LAN mode
                     if (!prefs.forceLocal) {
                         add("--no-local")
                     }
-                    if (engine == CrocEngine.CURRENT && !prefs.forceLocal && prefs.transferTransport.isNotBlank() && prefs.transferTransport != "auto") {
+                    if (!prefs.forceLocal && prefs.transferTransport.isNotBlank() && prefs.transferTransport != "auto") {
                         add("--transport"); add(prefs.transferTransport)
                     }
                     // Multiplexing & transfer streams
@@ -330,7 +315,6 @@ class CrocProcess(
                     prefs = prefs,
                     opName = "Send",
                     code = code,
-                    engine = engine,
                     initialFileNames = filePaths.map { File(it).name }
                 )
             } catch (e: Exception) {
@@ -340,21 +324,21 @@ class CrocProcess(
         }
     }
 
-    suspend fun sendText(text: String, code: String? = null, engine: CrocEngine = CrocEngine.CURRENT) {
+    suspend fun sendText(text: String, code: String? = null) {
         withContext(Dispatchers.IO) {
             try {
                 _state.value = CrocTransferState.Preparing
                 val prefs = prefsRepository.preferencesFlow.first()
-                val binaryPath = binaryManager.getBinaryPath(engine)
+                val binaryPath = binaryManager.getBinaryPath()
 
                 val command = mutableListOf(binaryPath, "--yes").apply {
-                    addAll(buildGlobalFlags(prefs, engine))
+                    addAll(buildGlobalFlags(prefs))
                     add("--ignore-stdin")
                     add("send")
                     if (!prefs.forceLocal) {
                         add("--no-local")
                     }
-                    if (engine == CrocEngine.CURRENT && !prefs.forceLocal && prefs.transferTransport.isNotBlank() && prefs.transferTransport != "auto") {
+                    if (!prefs.forceLocal && prefs.transferTransport.isNotBlank() && prefs.transferTransport != "auto") {
                         add("--transport"); add(prefs.transferTransport)
                     }
                     if (prefs.disableMultiplexing) {
@@ -376,7 +360,6 @@ class CrocProcess(
                     prefs = prefs,
                     opName = "SendText",
                     code = code,
-                    engine = engine,
                     initialFileNames = listOf("text")
                 )
             } catch (e: Exception) {
@@ -386,14 +369,13 @@ class CrocProcess(
         }
     }
 
-    suspend fun receive(code: String, outputDir: File, engine: CrocEngine = CrocEngine.CURRENT) {
+    suspend fun receive(code: String, outputDir: File) {
         withContext(Dispatchers.IO) {
             try {
                 _state.value = CrocTransferState.Preparing
                 val prefs = prefsRepository.preferencesFlow.first()
                 val isStore = isStoredToken(code)
-                val effectiveEngine = if (isStore) CrocEngine.CURRENT else engine
-                val binaryPath = binaryManager.getBinaryPath(effectiveEngine)
+                val binaryPath = binaryManager.getBinaryPath()
                 outputDir.mkdirs()
 
                 val conflictFlag = if (prefs.receiveConflictStrategy == "rename") "--rename" else "--overwrite"
@@ -406,7 +388,7 @@ class CrocProcess(
                         add("--connect"); add(prefs.httpProxy)
                     }
                     if (!isStore) {
-                        addAll(relayFlagsFor(prefs, engine))
+                        addAll(relayFlagsFor(prefs))
                         if (prefs.relayPassword.isNotBlank()) {
                             add("--pass"); add(prefs.relayPassword)
                         }
@@ -431,8 +413,7 @@ class CrocProcess(
                     extraEnv = secretEnv(code),
                     prefs = prefs,
                     opName = if (isStore) "ReceiveStore" else "Receive",
-                    code = code,
-                    engine = effectiveEngine
+                    code = code
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Receive failed", e)
@@ -468,8 +449,7 @@ class CrocProcess(
             try {
                 _state.value = CrocTransferState.Preparing
                 val prefs = prefsRepository.preferencesFlow.first()
-                // Store is only supported on CURRENT engine (croc v11+)
-                val binaryPath = binaryManager.getBinaryPath(CrocEngine.CURRENT)
+                val binaryPath = binaryManager.getBinaryPath()
 
                 val effectiveStoreUrl = customStoreUrl?.takeIf { it.isNotBlank() }
                     ?: prefs.customStoreUrl.takeIf { it.isNotBlank() }
@@ -503,7 +483,6 @@ class CrocProcess(
                     prefs = prefs,
                     opName = "SendStore",
                     code = null,
-                    engine = CrocEngine.CURRENT,
                     initialFileNames = filePaths.map { File(it).name }
                 )
             } catch (e: Exception) {
@@ -516,7 +495,7 @@ class CrocProcess(
     suspend fun revokeStore(storeId: String): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
-                val binaryPath = binaryManager.getBinaryPath(CrocEngine.CURRENT)
+                val binaryPath = binaryManager.getBinaryPath()
                 val prefs = prefsRepository.preferencesFlow.first()
                 val command = mutableListOf(binaryPath, "--yes", "--revoke", storeId.trim()).apply {
                     if (prefs.socks5Proxy.isNotBlank()) {
@@ -539,8 +518,7 @@ class CrocProcess(
                 val process = binaryManager.startProcess(
                     command = command,
                     workDir = homeDir,
-                    extraEnv = env,
-                    engine = CrocEngine.CURRENT
+                    extraEnv = env
                 ) ?: return@withContext Result.failure(Exception("Failed to start croc process"))
 
                 val output = process.inputStream.bufferedReader().readText()
@@ -578,7 +556,6 @@ class CrocProcess(
         prefs: UserPreferencesRepository.CrocPreferences,
         opName: String,
         code: String?,
-        engine: CrocEngine,
         initialFileNames: List<String> = emptyList()
     ) {
         val currentCommand = baseCommand.toMutableList()
@@ -594,8 +571,8 @@ class CrocProcess(
                 return
             }
 
-            Log.d(TAG, "$opName ($engine) attempt $attempt command: ${redactCommandForLog(currentCommand)}")
-            var result = runCommand(currentCommand, workDir, currentWaitingState, currentEnv, engine, initialFileNames)
+            Log.d(TAG, "$opName attempt $attempt command: ${redactCommandForLog(currentCommand)}")
+            var result = runCommand(currentCommand, workDir, currentWaitingState, currentEnv, initialFileNames)
             lastResult = result
 
             // Check cancelled state FIRST — cancel() may have been called while parseOutput was running.
@@ -603,31 +580,13 @@ class CrocProcess(
                 return // keep the Cancelled state intact
             }
 
-            if (result.isLegacyFallback) {
-                val effectiveRoom = if (!effectiveCode.isNullOrBlank()) effectiveCode else result.announcedCode.ifBlank { "" }
-                _state.value = CrocTransferState.LegacyFallbackAvailable(
-                    room = effectiveRoom,
-                    reason = "The other device is using an older croc version (PAKE protocol version mismatch)."
-                )
-                return
-            }
-
             if (shouldRetryWithInternalDns(result, prefs, currentCommand)) {
                 addInternalDnsFlag(currentCommand)
-                Log.w(TAG, "$opName ($engine) retry with --internal-dns: ${redactCommandForLog(currentCommand)}")
-                result = runCommand(currentCommand, workDir, currentWaitingState, currentEnv, engine, initialFileNames)
+                Log.w(TAG, "$opName retry with --internal-dns: ${redactCommandForLog(currentCommand)}")
+                result = runCommand(currentCommand, workDir, currentWaitingState, currentEnv, initialFileNames)
                 lastResult = result
 
                 if (_state.value is CrocTransferState.Cancelled || !coroutineContext.isActive) {
-                    return
-                }
-
-                if (result.isLegacyFallback) {
-                    val effectiveRoom = if (!effectiveCode.isNullOrBlank()) effectiveCode else result.announcedCode.ifBlank { "" }
-                    _state.value = CrocTransferState.LegacyFallbackAvailable(
-                        room = effectiveRoom,
-                        reason = "The other device is using an older croc version (PAKE protocol version mismatch)."
-                    )
                     return
                 }
             }
@@ -659,7 +618,7 @@ class CrocProcess(
 
                 Log.w(
                     TAG,
-                    "$opName ($engine) could not secure channel on attempt ${attempt - 1}. " +
+                    "$opName could not secure channel on attempt ${attempt - 1}. " +
                             "Retrying ($attempt/$MAX_SECURE_CHANNEL_RETRIES) in ${backoffMs}ms with code '${effectiveCode ?: ""}'..."
                 )
                 delay(backoffMs)
@@ -722,7 +681,6 @@ class CrocProcess(
         workDir: File,
         waitingState: CrocTransferState,
         extraEnv: Map<String, String>,
-        engine: CrocEngine,
         initialFileNames: List<String> = emptyList()
     ): ProcessResult {
         val systemDns = getSystemDnsServers()
@@ -737,8 +695,7 @@ class CrocProcess(
         currentProcess = binaryManager.startProcess(
             command = command,
             workDir = workDir,
-            extraEnv = env,
-            engine = engine
+            extraEnv = env
         )
         _state.value = waitingState
         return parseOutput(currentProcess!!, initialFileNames)
@@ -770,8 +727,7 @@ class CrocProcess(
             val line = it.lowercase()
             ("lookup" in line && "[::1]:53" in line) ||
                     "no such host" in line ||
-                    "server misbehaving" in line ||
-                    "found no addresses" in line // croc v10's wording for a failed lookup
+                    "server misbehaving" in line
         }
     }
 
@@ -835,7 +791,6 @@ class CrocProcess(
         var isTextTransfer = false
         var capturingText = false
         val receivedTextLines = mutableListOf<String>()
-        var isLegacyFallback = false
         var announcedCode = ""
         var isStoreTransfer = false
         var storeBrowserLink = ""
@@ -846,7 +801,7 @@ class CrocProcess(
         var nextIsBrowserLink = false
         var nextIsCliToken = false
 
-        // Regex patterns for the current and legacy croc output formats
+        // Regex patterns for the croc output formats
         // Matches: "Sending (->1.2.3.4:9009)", "Receiving (<-1.2.3.4:9009)", or "Sending (10.0.0.1->1.2.3.4)"
         val peerIpRegex = Regex("""(?:->|<-)([0-9a-fA-F:.]+)""")
         // Matches progress lines: "filename... 42% |...| (size) N/M" or "Uploading file.txt... 42% |...| (size)"
@@ -867,13 +822,6 @@ class CrocProcess(
                 Log.d(TAG, "croc> $l")
                 outputTail.addLast(l)
                 if (outputTail.size > 50) outputTail.removeFirst()
-
-                // Narrow match: only on literal substring "unsupported PAKE protocol version"
-                if (l.lowercase().contains("unsupported pake protocol version")) {
-                    isLegacyFallback = true
-                    try { process.destroyForcibly() } catch (_: Exception) {}
-                    break
-                }
 
                 // Skip blank / whitespace-only lines
                 if (l.isBlank()) continue
@@ -1182,9 +1130,6 @@ class CrocProcess(
             val receivedText = if (isTextTransfer && receivedTextLines.isNotEmpty()) {
                 receivedTextLines.joinToString("\n")
             } else null
-            val effectiveLegacyFallback = isLegacyFallback || outputTail.any {
-                it.lowercase().contains("unsupported pake protocol version")
-            }
             val effectiveStoreId = storeId.ifBlank {
                 if (storeBrowserLink.contains("/s/")) {
                     storeBrowserLink.substringAfter("/s/").substringBefore("#").trim()
@@ -1198,7 +1143,6 @@ class CrocProcess(
                 peerIp = peerIp,
                 totalFileCount = totalFilesFromProgress,
                 receivedText = receivedText,
-                isLegacyFallback = effectiveLegacyFallback,
                 announcedCode = announcedCode,
                 isStoreTransfer = isStoreTransfer || storeBrowserLink.isNotBlank(),
                 storeBrowserLink = storeBrowserLink,
@@ -1215,9 +1159,6 @@ class CrocProcess(
             } else {
                 Log.w(TAG, "croc output stream interrupted; using process exit state", e)
             }
-            val effectiveLegacyFallback = isLegacyFallback || outputTail.any {
-                it.lowercase().contains("unsupported pake protocol version")
-            }
             return ProcessResult(
                 exitCode = exitCode,
                 fileNames = fileNames,
@@ -1229,14 +1170,10 @@ class CrocProcess(
                 },
                 peerIp = peerIp,
                 totalFileCount = totalFilesFromProgress,
-                isLegacyFallback = effectiveLegacyFallback,
                 announcedCode = announcedCode
             )
         } catch (e: Exception) {
             Log.e(TAG, "Parse error", e)
-            val effectiveLegacyFallback = isLegacyFallback || outputTail.any {
-                it.lowercase().contains("unsupported pake protocol version")
-            }
             return ProcessResult(
                 exitCode = -1,
                 fileNames = fileNames,
@@ -1244,7 +1181,6 @@ class CrocProcess(
                 outputTail = listOf(e.message ?: "Unknown error"),
                 peerIp = peerIp,
                 totalFileCount = totalFilesFromProgress,
-                isLegacyFallback = effectiveLegacyFallback,
                 announcedCode = announcedCode
             )
         }

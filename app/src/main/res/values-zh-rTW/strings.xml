@@ -315,20 +315,6 @@
     <string name="setup_guide2_bullet3">保持應用程式在此頁面開啟即可，無需其他操作。</string>
 
     <!-- ════ 雙引擎與舊版支援 ════ -->
-    <string name="transfer_legacy_fallback_title">偵測到舊版 Croc</string>
-    <string name="transfer_legacy_fallback_desc">對方裝置使用的是較舊的 croc 版本。</string>
-    <string name="transfer_legacy_fallback_send_desc">接收方使用的是較舊的 croc 版本（v10 或更早）。你可以切換至舊版模式進行傳送。</string>
-    <string name="transfer_legacy_fallback_receive_desc">傳送方使用的是較舊的 croc 版本（v10 或更早）。你可以切換至舊版模式進行接收。</string>
-    <string name="action_retry_legacy">重試（舊版）</string>
-    <string name="action_send_legacy">以舊版模式傳送</string>
-    <string name="action_switch_legacy_receive">輸入新密碼（舊版模式）</string>
-    <string name="badge_legacy_mode">舊版</string>
-    <string name="badge_current_mode">最新</string>
-    <string name="settings_try_legacy_first">優先嘗試舊版 croc</string>
-    <string name="settings_try_legacy_first_desc">優先嘗試使用舊版 croc (v10.6.0) 進行傳輸，而不是等待版本不相容提示。預設關閉。</string>
-    <string name="settings_clear_legacy_binary">清除快取的舊版引擎</string>
-    <string name="settings_clear_legacy_binary_desc">從裝置儲存空間刪除已下載的舊版 croc 引擎。</string>
-    <string name="settings_clear_legacy_button">清除</string>
 
     <!-- ════ 新增設定：代理、網路與傳輸選項 ════ -->
     <string name="settings_proxy_privacy">代理與隱私</string>
@@ -347,7 +333,6 @@
     <string name="settings_notice_http_proxy_ignored">已設定 SOCKS5 代理，HTTP 代理將被忽略。</string>
     <string name="settings_notice_local_only_ignores_relay">已開啟僅限本地，中繼和代理設定不會被使用。</string>
     <string name="settings_notice_local_only_ignores_transport">已開啟僅限本地，傳輸方式將被忽略。</string>
-    <string name="settings_notice_legacy_ignores_transport">舊版引擎會忽略傳輸方式；此設定僅在使用目前引擎時生效。</string>
     <string name="settings_sender_ip">傳送端 IP 覆寫</string>
     <string name="settings_sender_ip_desc">明確指定傳送端 IP:連接埠（例如處於複雜 NAT 或 VPN 環境）</string>
     <string name="settings_sender_ip_placeholder">例如 192.168.1.50:9009</string>
@@ -483,9 +468,6 @@
     <string name="guide_err_flate_title">錯誤：「flate: corrupt input」 / 解壓縮失敗</string>
     <string name="guide_err_flate_cause">壓縮資料在網路傳輸過程中損毀，或兩端使用的壓縮演算法不相符。</string>
     <string name="guide_err_flate_solution">首先點擊「重試」重新傳輸。若仍然發生錯誤，請前往 設定 -&gt; 進階設定 並開啟「停用壓縮」，以不壓縮直接傳輸檔案。</string>
-    <string name="guide_err_legacy_title">「偵測到舊版 croc」 / 協定版本不符</string>
-    <string name="guide_err_legacy_cause">一部裝置正在執行 croc v11（新協定），而另一部正在執行 croc v10 或更早版本。</string>
-    <string name="guide_err_legacy_solution">點擊傳輸卡片上的「重試 (舊版)」，或在「設定」中開啟「優先嘗試舊版 croc」。</string>
     <string name="guide_err_file_missing_title">找不到檔案 / 儲存空間權限錯誤</string>
     <string name="guide_err_file_missing_cause">所選檔案已被移動、重新命名或刪除，或 croc-app 缺少儲存至指定資料夾的權限。</string>
     <string name="guide_err_file_missing_solution">確認檔案仍存在於裝置中，或在「設定」中重新選取下載資料夾。</string>

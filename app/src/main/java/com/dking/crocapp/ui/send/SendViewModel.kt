@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.dking.crocapp.CrocApp
 import com.dking.crocapp.croc.CodePhraseGenerator
 import com.dking.crocapp.croc.CrocBinaryManager
-import com.dking.crocapp.croc.CrocEngine
 import com.dking.crocapp.croc.CrocProcess
 import com.dking.crocapp.croc.CrocTransferState
 import com.dking.crocapp.data.db.TransferHistory
@@ -20,7 +19,6 @@ import com.dking.crocapp.util.StorageCleaner
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -48,7 +46,6 @@ data class SendUiState(
     val storeDownloads: Int = 1,
     val textToSend: String = "",
     val transferState: CrocTransferState = CrocTransferState.Idle,
-    val activeEngine: CrocEngine = CrocEngine.CURRENT,
     // Folder mode
     val selectedFolderName: String? = null,
     val selectedFolderFileCount: Int = 0,
@@ -260,8 +257,7 @@ class SendViewModel(application: Application) : AndroidViewModel(application) {
             if (transferState is CrocTransferState.Completed ||
                 transferState is CrocTransferState.StoreCompleted ||
                 transferState is CrocTransferState.Error ||
-                transferState is CrocTransferState.Cancelled ||
-                transferState is CrocTransferState.LegacyFallbackAvailable
+                transferState is CrocTransferState.Cancelled
             ) {
                 crocProcess.reset()
             }
@@ -290,16 +286,14 @@ class SendViewModel(application: Application) : AndroidViewModel(application) {
             if (transferState is CrocTransferState.Completed ||
                 transferState is CrocTransferState.StoreCompleted ||
                 transferState is CrocTransferState.Error ||
-                transferState is CrocTransferState.Cancelled ||
-                transferState is CrocTransferState.LegacyFallbackAvailable
+                transferState is CrocTransferState.Cancelled
             ) {
                 crocProcess.reset()
             }
             _uiState.update {
                 it.copy(
                     deliveryMode = mode,
-                    sendMode = if (mode == DeliveryMode.STORE && it.sendMode == SendMode.FOLDER) SendMode.FILES else it.sendMode,
-                    activeEngine = if (mode == DeliveryMode.STORE) CrocEngine.CURRENT else it.activeEngine
+                    sendMode = if (mode == DeliveryMode.STORE && it.sendMode == SendMode.FOLDER) SendMode.FILES else it.sendMode
                 )
             }
         }
@@ -326,35 +320,12 @@ class SendViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toggleEngine() {
-        if (_uiState.value.isStoreMode) return // Store mode requires v11
-        val next = if (_uiState.value.activeEngine == CrocEngine.CURRENT) CrocEngine.LEGACY else CrocEngine.CURRENT
-        _uiState.update { it.copy(activeEngine = next) }
-    }
-
-    fun setEngine(engine: CrocEngine) {
-        if (_uiState.value.isStoreMode && engine != CrocEngine.CURRENT) return
-        _uiState.update { it.copy(activeEngine = engine) }
-    }
-
-    fun startSend(engine: CrocEngine? = null) {
+    fun startSend() {
         viewModelScope.launch {
             val state = _uiState.value
             if (!state.hasContent) return@launch
 
             val isStore = state.deliveryMode == DeliveryMode.STORE
-            val targetEngine = if (isStore) {
-                CrocEngine.CURRENT
-            } else {
-                engine ?: _uiState.value.activeEngine.takeIf { it == CrocEngine.LEGACY }
-                    ?: if (prefsRepo.preferencesFlow.first().tryLegacyFirst) {
-                        CrocEngine.LEGACY
-                    } else {
-                        CrocEngine.CURRENT
-                    }
-            }
-
-            _uiState.update { it.copy(activeEngine = targetEngine) }
 
             // Always reset before starting a new transfer
             crocProcess.reset()
@@ -393,27 +364,23 @@ class SendViewModel(application: Application) : AndroidViewModel(application) {
             when (state.sendMode) {
                 SendMode.TEXT -> {
                     if (state.textToSend.isNotBlank()) {
-                        crocProcess.sendText(state.textToSend, state.codePhrase, engine = targetEngine)
+                        crocProcess.sendText(state.textToSend, state.codePhrase)
                     }
                 }
                 SendMode.FILES -> {
                     if (state.selectedFiles.isNotEmpty()) {
                         val filePaths = copyFilesToInternal(state.selectedFiles)
-                        crocProcess.send(filePaths, state.codePhrase, engine = targetEngine)
+                        crocProcess.send(filePaths, state.codePhrase)
                     }
                 }
                 SendMode.FOLDER -> {
                     val folderPath = state.selectedFolderPath
                     if (folderPath != null) {
-                        crocProcess.send(listOf(folderPath), state.codePhrase, engine = targetEngine)
+                        crocProcess.send(listOf(folderPath), state.codePhrase)
                     }
                 }
             }
         }
-    }
-
-    fun retryWithLegacy() {
-        startSend(engine = CrocEngine.LEGACY)
     }
 
     fun cancelTransfer() {
