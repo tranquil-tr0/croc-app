@@ -40,7 +40,7 @@ class CrocProcess(
         /**
          * Only relays the user set are passed. With neither set, croc 11 picks the public relay
          * (N.getcroc.com) from the code like the stock CLI; any relay flag turns that off.
-         * croc itself ignores the IPv6 default whenever `--relay` is non-default.
+         * A set relay address always wins over the IPv6 relay, which is then not passed.
          * The legacy engine always gets `--relay`, so its default relay is resolved by the app:
          * croc v10 cannot resolve hostnames on Android without `--internal-dns`.
          */
@@ -55,8 +55,7 @@ class CrocProcess(
             val relay6 = relay6Address.trim()
             if (relay.isNotEmpty()) {
                 add("--relay"); add(resolve(relay))
-            }
-            if (relay6.isNotEmpty()) {
+            } else if (relay6.isNotEmpty()) {
                 add("--relay6"); add(relay6)
             }
         }

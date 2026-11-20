@@ -341,6 +341,13 @@
     <string name="settings_relay6_address">IPv6 रिले पता</string>
     <string name="settings_relay6_address_desc">स्पष्ट IPv6 रिले सर्वर पता (वैकल्पिक)</string>
     <string name="settings_relay6_placeholder">उदा. [::1]:9009</string>
+    <string name="settings_notices_title">कुछ सेटिंग्स ओवरराइड हो रही हैं</string>
+    <string name="settings_notice_old_default_relay">रिले croc.schollz.com केवल 11.2 से पुराना croc और इस ऐप के पुराने वर्शन इस्तेमाल करते हैं। नए पीयर के स्वचालित रिले इस्तेमाल करने के लिए रिले पता खाली करें।</string>
+    <string name="settings_notice_relay6_ignored">रिले पता सेट होने के कारण IPv6 रिले को अनदेखा किया जाता है।</string>
+    <string name="settings_notice_http_proxy_ignored">SOCKS5 प्रॉक्सी सेट होने के कारण HTTP प्रॉक्सी को अनदेखा किया जाता है।</string>
+    <string name="settings_notice_local_only_ignores_relay">केवल लोकल चालू है, इसलिए रिले और प्रॉक्सी सेटिंग्स इस्तेमाल नहीं होतीं।</string>
+    <string name="settings_notice_local_only_ignores_transport">केवल लोकल चालू है, इसलिए ट्रांसफ़र ट्रांसपोर्ट को अनदेखा किया जाता है।</string>
+    <string name="settings_notice_legacy_ignores_transport">लेगेसी इंजन ट्रांसफ़र ट्रांसपोर्ट को अनदेखा करता है; यह केवल वर्तमान इंजन पर लागू होता है।</string>
     <string name="settings_sender_ip">सेंडर IP ओवरराइड</string>
     <string name="settings_sender_ip_desc">यदि ज्ञात हो तो सेंडर IP:पोर्ट सीधे सेट करें (NAT या VPN के पीछे)</string>
     <string name="settings_sender_ip_placeholder">उदा. 192.168.1.50:9009</string>

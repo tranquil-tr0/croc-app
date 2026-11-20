@@ -34,9 +34,9 @@ class RelayFlagsTest {
     }
 
     @Test
-    fun bothRelays_passesBoth() {
+    fun bothRelays_relayAddressWins() {
         assertEquals(
-            listOf("--relay", "203.0.113.7:9009", "--relay6", "[2001:db8::1]:9009"),
+            listOf("--relay", "203.0.113.7:9009"),
             CrocProcess.relayFlags("relay.example:9009", "[2001:db8::1]:9009", CrocEngine.CURRENT, resolveToIp)
         )
     }

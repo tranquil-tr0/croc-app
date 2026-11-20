@@ -341,6 +341,13 @@
     <string name="settings_relay6_address">Dirección de repetidor IPv6</string>
     <string name="settings_relay6_address_desc">Dirección explícita del servidor repetidor IPv6 (opcional)</string>
     <string name="settings_relay6_placeholder">p. ej., [::1]:9009</string>
+    <string name="settings_notices_title">Algunos ajustes se anulan</string>
+    <string name="settings_notice_old_default_relay">El relé croc.schollz.com solo lo usan croc anterior a 11.2 y versiones antiguas de esta app. Borra la dirección del relé para usar los relés automáticos de los pares más recientes.</string>
+    <string name="settings_notice_relay6_ignored">El relé IPv6 se ignora porque hay una dirección de relé configurada.</string>
+    <string name="settings_notice_http_proxy_ignored">El proxy HTTP se ignora porque hay un proxy SOCKS5 configurado.</string>
+    <string name="settings_notice_local_only_ignores_relay">Solo local está activado, así que no se usan los ajustes de relé ni de proxy.</string>
+    <string name="settings_notice_local_only_ignores_transport">Solo local está activado, así que se ignora el transporte de transferencia.</string>
+    <string name="settings_notice_legacy_ignores_transport">El motor heredado ignora el transporte de transferencia; solo se aplica con el motor actual.</string>
     <string name="settings_sender_ip">Anulación de IP del remitente</string>
     <string name="settings_sender_ip_desc">Establecer explícitamente IP:puerto del remitente si se conoce (detrás de NAT compleja o VPN)</string>
     <string name="settings_sender_ip_placeholder">p. ej., 192.168.1.50:9009</string>
