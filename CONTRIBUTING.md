@@ -20,6 +20,7 @@ Whenever dependencies are updated or re-vendored, you must commit the `vendor/` 
 cd third_party/croc-src
 go mod tidy
 go mod vendor
+python3 ../../tools/prepare-croc-vendor.py  # needs Python 3.14+
 go build ./...
 
 # Legacy engine (frozen - only if repairing vendoring)
