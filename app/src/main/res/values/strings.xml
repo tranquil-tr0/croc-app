@@ -543,4 +543,5 @@
     <string name="receive_input_code_dialog_title">Enter Secret Code</string>
     <string name="receive_input_code_dialog_desc">Enter the secret code phrase from the sender to start receiving.</string>
     <string name="receive_input_code_save_default">Save as default code phrase</string>
+    <string name="error_sender_not_found">No sender found on this relay. Check the code. Senders older than croc 11.2 only connect for about 1 code in 4 unless the relay is set to croc.schollz.com:9009.</string>
 </resources>

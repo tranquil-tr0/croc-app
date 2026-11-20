@@ -263,7 +263,7 @@ func remoteLookupIP(address, dns string) (ipaddress string, err error) {
 }
 
 func remoteLookupIPContext(ctx context.Context, address, dns string) (ipaddress string, err error) {
-	ctx, cancel := context.WithTimeout(ctx, 800*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
 
 	r := &net.Resolver{

@@ -520,4 +520,5 @@
     <string name="receive_input_code_dialog_title">输入密码短语</string>
     <string name="receive_input_code_dialog_desc">请输入发送方的密码短语以开始接收。</string>
     <string name="receive_input_code_save_default">保存为默认密码短语</string>
+    <string name="error_sender_not_found">此中继上未找到发送方。请检查密码。除非将中继设置为 croc.schollz.com:9009，否则 croc 11.2 之前版本的发送方大约每 4 个密码中只有 1 个能连接成功。</string>
 </resources>
