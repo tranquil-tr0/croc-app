@@ -65,6 +65,13 @@ internal object ReceivedFilePublisher {
         return if (idx > 0) relativePath.substring(0, idx) else ""
     }
 
+    /**
+     * Directories to create under a user-picked SAF folder for [relativePath].
+     * The picked folder is the destination itself, so no croc-received folder is added.
+     */
+    internal fun safSubdirSegments(relativePath: String): List<String> =
+        relativeSubdir(relativePath).split('/').filter { it.isNotEmpty() }
+
     private fun publishToSafTree(
         application: Application,
         source: File,
@@ -75,19 +82,14 @@ internal object ReceivedFilePublisher {
         val resolver = application.contentResolver
         val treeDoc = DocumentFile.fromTreeUri(application, treeUri) ?: return null
 
-        // Create croc-received subdirectory inside the user-picked tree
-        var targetDir = treeDoc.findFile("croc-received")
-            ?: treeDoc.createDirectory("croc-received")
-            ?: return null
-
-        // If the file came from a folder transfer, recreate the subdirectory structure
+        // Save straight into the picked folder (the UI shows it as the location),
+        // recreating any subdirectories from a folder transfer.
         val subdir = relativeSubdir(relativePath)
-        if (subdir.isNotEmpty()) {
-            for (segment in subdir.split("/")) {
-                targetDir = targetDir.findFile(segment)
-                    ?: targetDir.createDirectory(segment)
-                    ?: return null
-            }
+        var targetDir: DocumentFile = treeDoc
+        for (segment in safSubdirSegments(relativePath)) {
+            targetDir = targetDir.findFile(segment)
+                ?: targetDir.createDirectory(segment)
+                ?: return null
         }
 
         val mimeType = URLConnection.guessContentTypeFromName(source.name) ?: "application/octet-stream"
@@ -112,7 +114,6 @@ internal object ReceivedFilePublisher {
             val actualName = destDoc.name ?: source.name
             val displayPath = buildString {
                 treeDoc.name?.let { append("$it/") }
-                append("croc-received/")
                 if (subdir.isNotEmpty()) append("$subdir/")
                 append(actualName)
             }
