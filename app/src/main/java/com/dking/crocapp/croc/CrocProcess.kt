@@ -174,7 +174,7 @@ class CrocProcess(
 
     /**
      * Build common global flags from preferences.
-     * Only includes flags that actually exist in croc v11.6.5 and v10.6.0.
+     * Only includes flags that exist in both the current and legacy croc engines.
      */
     private fun buildGlobalFlags(
         prefs: UserPreferencesRepository.CrocPreferences,
@@ -831,7 +831,7 @@ class CrocProcess(
         var nextIsBrowserLink = false
         var nextIsCliToken = false
 
-        // Regex patterns for the latest (v11.6.5) and legacy (v10.6.0) output formats
+        // Regex patterns for the current and legacy croc output formats
         // Matches: "Sending (->1.2.3.4:9009)", "Receiving (<-1.2.3.4:9009)", or "Sending (10.0.0.1->1.2.3.4)"
         val peerIpRegex = Regex("""(?:->|<-)([0-9a-fA-F:.]+)""")
         // Matches progress lines: "filename... 42% |...| (size) N/M" or "Uploading file.txt... 42% |...| (size)"

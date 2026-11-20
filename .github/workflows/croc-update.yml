@@ -128,12 +128,7 @@ jobs:
           fi
           rm -f "$TMP_TAR"
 
-          # 4. Update CrocProcess.kt comments / docstrings
-          sed -i -E "s/\* croc v?[0-9.]+ global flags:/\* croc v${NEW_VER} global flags:/g" app/src/main/java/com/dking/crocapp/croc/CrocProcess.kt
-          sed -i -E "s/\* Only includes flags that actually exist in croc v?[0-9.]+\./\* Only includes flags that actually exist in croc v${NEW_VER}./g" app/src/main/java/com/dking/crocapp/croc/CrocProcess.kt
-          sed -i -E "s|// Regex patterns for the v?[0-9.]+ output format|// Regex patterns for the v${NEW_VER} output format|g" app/src/main/java/com/dking/crocapp/croc/CrocProcess.kt
-
-          # 5. Update strings.xml in all locales
+          # 4. Update strings.xml in all locales
           find app/src/main/res -name "strings.xml" -exec sed -i -E \
             -e "s|<string name=\"settings_croc_version_value\">[^<]*</string>|<string name=\"settings_croc_version_value\">v${NEW_VER}</string>|g" \
             -e "s|<string name=\"settings_croc_version_val\">[^<]*</string>|<string name=\"settings_croc_version_val\">v${NEW_VER}</string>|g" \
