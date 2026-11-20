@@ -50,6 +50,12 @@ jobs:
         with:
           go-version-file: third_party/croc-src/go.mod
 
+      - name: Setup Python (prepare-croc-vendor.py needs compression.zstd)
+        if: steps.current.outputs.version != steps.latest.outputs.version
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
       - name: Tidy, vendor, and sanity-build
         id: vendor
         if: steps.current.outputs.version != steps.latest.outputs.version
@@ -71,7 +77,7 @@ jobs:
             FLAGGED="${FLAGGED}${f}\n"
           done < <(find third_party/croc-src \
             \( -name '*.a' -o -name '*.aar' -o -name '*.class' -o -name '*.dex' \
-               -o -name '*.gz' -o -name '*.tgz' -o -name '*.so' -o -name '*.so.*' \
+               -o -name '*.gz' -o -name '*.tgz' -o -name '*.zst' -o -name '*.so' -o -name '*.so.*' \
                -o -name '*.zip' -o -name '*.jar' -o -name '*.wasm' \) \
             ! -name 'gradle-wrapper.jar' ! -name 'gradlew.bat' \
             -print0)

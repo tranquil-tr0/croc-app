@@ -10,6 +10,7 @@ import base64
 import gzip
 import hashlib
 import zlib
+from compression import zstd  # Python 3.14+
 from pathlib import Path
 
 vendor = Path(__file__).resolve().parents[1] / "third_party/croc-src/vendor"
@@ -39,6 +40,15 @@ for relative in (
             raise ValueError(f"Compressed asset differs from {target}")
         target.write_bytes(data)
         compressed.unlink()
+
+# tailscale v1.104+ ships the web client's assets as zstd.
+for compressed in (vendor / "github.com/tailscale/web-client-prebuilt/build/assets").glob("*.zst"):
+    target = compressed.with_suffix("")
+    data = zstd.decompress(compressed.read_bytes())
+    if target.exists() and target.read_bytes() != data:
+        raise ValueError(f"Compressed asset differs from {target}")
+    target.write_bytes(data)
+    compressed.unlink()
 
 source = vendor / "tailscale.com/util/eventbus/debughttp.go"
 if source.exists():
