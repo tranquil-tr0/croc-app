@@ -93,6 +93,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dking.crocapp.R
 import com.dking.crocapp.croc.CrocTransferState
+import com.dking.crocapp.croc.LegacyFallbackCause
 import com.dking.crocapp.ui.components.QrCodeImage
 import com.dking.crocapp.util.QrCodeParser
 import com.dking.crocapp.ui.components.formatBytes
@@ -378,6 +379,17 @@ private fun TransferStatusSection(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(stringResource(R.string.action_send_legacy))
                     }
+                }
+            } else if (state.cause == LegacyFallbackCause.SENDER_NOT_FOUND) {
+                // The legacy relay's room was never touched, so retry the same code.
+                Button(
+                    onClick = { (onRetryLegacy ?: onSwitchToLegacy)?.invoke() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(stringResource(R.string.action_receive_legacy_same_code))
                 }
             } else {
                 Button(
@@ -1040,13 +1052,22 @@ private fun QuickDetailPill(
 }
 
 @Composable
+private fun legacyFallbackTitle(state: CrocTransferState.LegacyFallbackAvailable): String {
+    return if (state.cause == LegacyFallbackCause.SENDER_NOT_FOUND) {
+        stringResource(R.string.transfer_sender_not_found_title)
+    } else {
+        stringResource(R.string.transfer_legacy_fallback_title)
+    }
+}
+
+@Composable
 private fun quickTransferTitle(state: CrocTransferState, isSending: Boolean): String {
     return when (state) {
         is CrocTransferState.Preparing -> if (isSending) stringResource(R.string.quick_preparing_send) else stringResource(R.string.quick_preparing_receive)
         is CrocTransferState.WaitingForPeer -> if (isSending) stringResource(R.string.quick_waiting_send) else stringResource(R.string.quick_waiting_receive)
         is CrocTransferState.Transferring -> if (isSending) stringResource(R.string.quick_transferring_send) else stringResource(R.string.quick_transferring_receive)
         is CrocTransferState.Completed -> if (isSending) stringResource(R.string.quick_completed_send) else stringResource(R.string.quick_completed_receive)
-        is CrocTransferState.LegacyFallbackAvailable -> stringResource(R.string.transfer_legacy_fallback_title)
+        is CrocTransferState.LegacyFallbackAvailable -> legacyFallbackTitle(state)
         is CrocTransferState.Error -> if (isSending) stringResource(R.string.quick_error_send) else stringResource(R.string.quick_error_receive)
         is CrocTransferState.Cancelled -> if (isSending) stringResource(R.string.quick_cancelled_send) else stringResource(R.string.quick_cancelled_receive)
         else -> stringResource(R.string.quick_transfer)
@@ -1076,7 +1097,11 @@ private fun quickTransferSubtitle(state: CrocTransferState, isSending: Boolean):
                 else stringResource(R.string.quick_sub_completed_receive_many, state.fileCount)
             }
         }
-        is CrocTransferState.LegacyFallbackAvailable -> stringResource(R.string.transfer_legacy_fallback_desc)
+        is CrocTransferState.LegacyFallbackAvailable -> if (state.cause == LegacyFallbackCause.SENDER_NOT_FOUND) {
+            stringResource(R.string.transfer_sender_not_found_desc)
+        } else {
+            stringResource(R.string.transfer_legacy_fallback_desc)
+        }
         is CrocTransferState.Error -> if (isSending) {
             stringResource(R.string.quick_sub_error_send)
         } else {
@@ -1094,7 +1119,7 @@ private fun quickProgressLabel(state: CrocTransferState, isSending: Boolean): St
         is CrocTransferState.WaitingForPeer -> if (isSending) stringResource(R.string.quick_progress_waiting_send) else stringResource(R.string.quick_progress_waiting_receive)
         is CrocTransferState.Transferring -> if (isSending) stringResource(R.string.quick_progress_transferring_send) else stringResource(R.string.quick_progress_transferring_receive)
         is CrocTransferState.Completed -> stringResource(R.string.quick_progress_complete)
-        is CrocTransferState.LegacyFallbackAvailable -> stringResource(R.string.transfer_legacy_fallback_title)
+        is CrocTransferState.LegacyFallbackAvailable -> legacyFallbackTitle(state)
         is CrocTransferState.Error -> stringResource(R.string.quick_progress_error)
         is CrocTransferState.Cancelled -> stringResource(R.string.quick_progress_cancelled)
         else -> ""

@@ -12,6 +12,7 @@ import com.dking.crocapp.croc.CrocBinaryManager
 import com.dking.crocapp.croc.CrocEngine
 import com.dking.crocapp.croc.CrocProcess
 import com.dking.crocapp.croc.CrocTransferState
+import com.dking.crocapp.croc.LegacyFallbackCause
 import com.dking.crocapp.data.db.TransferHistory
 import com.dking.crocapp.data.db.TransferStatus
 import com.dking.crocapp.data.db.TransferType
@@ -152,10 +153,17 @@ class QuickViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     is CrocTransferState.LegacyFallbackAvailable -> {
                         _uiState.update {
-                            it.copy(
-                                statusMessage = "Older Croc Detected",
-                                statusDetail = "The other device is using an older croc version. Retry with legacy mode?"
-                            )
+                            if (state.cause == LegacyFallbackCause.SENDER_NOT_FOUND) {
+                                it.copy(
+                                    statusMessage = "No Sender Found",
+                                    statusDetail = "Check the code. If the sender uses croc v10 or earlier, retry in legacy mode."
+                                )
+                            } else {
+                                it.copy(
+                                    statusMessage = "Older Croc Detected",
+                                    statusDetail = "The other device is using an older croc version. Retry with legacy mode?"
+                                )
+                            }
                         }
                     }
                     is CrocTransferState.Error -> {

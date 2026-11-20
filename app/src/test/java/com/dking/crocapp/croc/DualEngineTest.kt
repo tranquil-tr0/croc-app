@@ -42,12 +42,9 @@ class DualEngineTest {
     }
 
     @Test
-    fun legacyFallbackState_retainsRoomAndReason() {
-        val state = CrocTransferState.LegacyFallbackAvailable(
-            room = "test-room-123",
-            reason = "Custom reason"
-        )
+    fun legacyFallbackState_retainsRoomAndDefaultsToVersionMismatch() {
+        val state = CrocTransferState.LegacyFallbackAvailable(room = "test-room-123")
         assertEquals("test-room-123", state.room)
-        assertEquals("Custom reason", state.reason)
+        assertEquals(LegacyFallbackCause.VERSION_MISMATCH, state.cause)
     }
 }

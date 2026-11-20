@@ -319,6 +319,9 @@
     <string name="transfer_legacy_fallback_desc">El otro dispositivo usa una versión anterior de croc.</string>
     <string name="transfer_legacy_fallback_send_desc">El destinatario usa una versión anterior de croc (v10 o anterior). Puedes cambiar al modo heredado para enviar.</string>
     <string name="transfer_legacy_fallback_receive_desc">El remitente usa una versión anterior de croc (v10 o anterior). Puedes cambiar al modo heredado para recibir.</string>
+    <string name="transfer_sender_not_found_title">No se encontró remitente</string>
+    <string name="transfer_sender_not_found_desc">Ningún remitente espera con este código. Revisa el código o, si el remitente usa croc v10 o anterior, reintenta en modo heredado.</string>
+    <string name="action_receive_legacy_same_code">Reintentar en modo heredado</string>
     <string name="action_retry_legacy">Reintentar (Heredado)</string>
     <string name="action_send_legacy">Enviar en modo heredado</string>
     <string name="action_switch_legacy_receive">Introducir nuevo código (modo heredado)</string>

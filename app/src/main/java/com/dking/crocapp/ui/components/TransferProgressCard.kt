@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.dking.crocapp.R
 import com.dking.crocapp.croc.CrocEngine
 import com.dking.crocapp.croc.CrocTransferState
+import com.dking.crocapp.croc.LegacyFallbackCause
 
 @Composable
 fun TransferProgressCard(
@@ -193,15 +194,20 @@ fun TransferProgressCard(
                 }
 
                 is CrocTransferState.LegacyFallbackAvailable -> {
+                    val senderNotFound = state.cause == LegacyFallbackCause.SENDER_NOT_FOUND
                     TransferHeader(
                         icon = Icons.Rounded.History,
                         iconTint = MaterialTheme.colorScheme.tertiary,
                         iconBackground = MaterialTheme.colorScheme.tertiaryContainer,
-                        title = stringResource(R.string.transfer_legacy_fallback_title),
-                        subtitle = if (isSending) {
-                            stringResource(R.string.transfer_legacy_fallback_send_desc)
+                        title = if (senderNotFound) {
+                            stringResource(R.string.transfer_sender_not_found_title)
                         } else {
-                            stringResource(R.string.transfer_legacy_fallback_receive_desc)
+                            stringResource(R.string.transfer_legacy_fallback_title)
+                        },
+                        subtitle = when {
+                            senderNotFound -> stringResource(R.string.transfer_sender_not_found_desc)
+                            isSending -> stringResource(R.string.transfer_legacy_fallback_send_desc)
+                            else -> stringResource(R.string.transfer_legacy_fallback_receive_desc)
                         },
                         titleColor = MaterialTheme.colorScheme.onSurface
                     )
@@ -226,16 +232,27 @@ fun TransferProgressCard(
                                 }
                             }
                         } else {
-                            // Receiving flow
+                            // Receiving flow. A missing sender never touched the legacy relay's
+                            // room, so the same code is retried; a version mismatch used it up.
                             Button(
-                                onClick = { (onSwitchToLegacy ?: onRetryLegacy)?.invoke() },
+                                onClick = {
+                                    if (senderNotFound) {
+                                        (onRetryLegacy ?: onSwitchToLegacy)?.invoke()
+                                    } else {
+                                        (onSwitchToLegacy ?: onRetryLegacy)?.invoke()
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = MaterialTheme.shapes.large
                             ) {
                                 Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = stringResource(R.string.action_switch_legacy_receive),
+                                    text = if (senderNotFound) {
+                                        stringResource(R.string.action_receive_legacy_same_code)
+                                    } else {
+                                        stringResource(R.string.action_switch_legacy_receive)
+                                    },
                                     textAlign = TextAlign.Center
                                 )
                             }

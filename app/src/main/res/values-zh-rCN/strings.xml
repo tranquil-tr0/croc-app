@@ -319,6 +319,9 @@
     <string name="transfer_legacy_fallback_desc">对方设备使用的是较旧的 croc 版本。</string>
     <string name="transfer_legacy_fallback_send_desc">接收方使用的是较旧的 croc 版本（v10 或更早）。你可以切换到旧版模式进行发送。</string>
     <string name="transfer_legacy_fallback_receive_desc">发送方使用的是较旧的 croc 版本（v10 或更早）。你可以切换到旧版模式进行接收。</string>
+    <string name="transfer_sender_not_found_title">未找到发送方</string>
+    <string name="transfer_sender_not_found_desc">没有发送方在使用此密码等待。请检查密码；如果发送方使用 croc v10 或更早版本，请在旧版模式下重试。</string>
+    <string name="action_receive_legacy_same_code">在旧版模式下重试</string>
     <string name="action_retry_legacy">重试（旧版）</string>
     <string name="action_send_legacy">以旧版模式发送</string>
     <string name="action_switch_legacy_receive">输入新密码（旧版模式）</string>

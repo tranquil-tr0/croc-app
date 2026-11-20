@@ -77,8 +77,19 @@ sealed class CrocTransferState {
 
     data class LegacyFallbackAvailable(
         val room: String,
-        val reason: String = "The other device is using an older croc version (PAKE protocol version mismatch)."
+        val cause: LegacyFallbackCause = LegacyFallbackCause.VERSION_MISMATCH
     ) : CrocTransferState()
 
     data object Cancelled : CrocTransferState()
+}
+
+enum class LegacyFallbackCause {
+    /** The peer answered with an older PAKE protocol: it is croc v10 or earlier. */
+    VERSION_MISMATCH,
+
+    /**
+     * No sender was in the room on the automatic croc 11 relay. A croc v10 sender waits on
+     * croc.schollz.com instead, so the same code may still work in Legacy Mode.
+     */
+    SENDER_NOT_FOUND
 }

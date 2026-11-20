@@ -67,6 +67,36 @@ class CrocProcess(
             return "could not secure channel" in fullOutput
         }
 
+        /**
+         * croc 11 receivers exit with "local discovery failed: ... i/o timeout" within seconds
+         * when nobody is waiting in the room on the relay.
+         */
+        internal fun isSenderNotFound(exitCode: Int, outputTail: List<String>): Boolean {
+            if (exitCode == 0) return false
+            return outputTail.any {
+                val line = it.lowercase()
+                "local discovery failed" in line && "timeout" in line
+            }
+        }
+
+        /**
+         * Only on the automatic relay can a missing sender be a croc v10 peer: it waits on
+         * croc.schollz.com while croc 11 looks on N.getcroc.com. With a configured relay both
+         * engines use the same one, so Legacy Mode would not find the sender either.
+         */
+        internal fun shouldOfferLegacyForMissingSender(
+            opName: String,
+            engine: CrocEngine,
+            relayAddress: String,
+            exitCode: Int,
+            outputTail: List<String>
+        ): Boolean {
+            return opName == "Receive" &&
+                    engine == CrocEngine.CURRENT &&
+                    relayAddress.isBlank() &&
+                    isSenderNotFound(exitCode, outputTail)
+        }
+
         internal fun hasCliUsageExit(outputTail: List<String>): Boolean {
             return outputTail.any {
                 val line = it.lowercase()
@@ -593,10 +623,7 @@ class CrocProcess(
 
             if (result.isLegacyFallback) {
                 val effectiveRoom = if (!effectiveCode.isNullOrBlank()) effectiveCode else result.announcedCode.ifBlank { "" }
-                _state.value = CrocTransferState.LegacyFallbackAvailable(
-                    room = effectiveRoom,
-                    reason = "The other device is using an older croc version (PAKE protocol version mismatch)."
-                )
+                _state.value = CrocTransferState.LegacyFallbackAvailable(room = effectiveRoom)
                 return
             }
 
@@ -612,10 +639,7 @@ class CrocProcess(
 
                 if (result.isLegacyFallback) {
                     val effectiveRoom = if (!effectiveCode.isNullOrBlank()) effectiveCode else result.announcedCode.ifBlank { "" }
-                    _state.value = CrocTransferState.LegacyFallbackAvailable(
-                        room = effectiveRoom,
-                        reason = "The other device is using an older croc version (PAKE protocol version mismatch)."
-                    )
+                    _state.value = CrocTransferState.LegacyFallbackAvailable(room = effectiveRoom)
                     return
                 }
             }
@@ -700,6 +724,11 @@ class CrocProcess(
                     receivedText = finalResult.receivedText
                 )
             }
+        } else if (shouldOfferLegacyForMissingSender(opName, engine, prefs.relayAddress, finalResult.exitCode, finalResult.outputTail)) {
+            _state.value = CrocTransferState.LegacyFallbackAvailable(
+                room = effectiveCode.orEmpty(),
+                cause = LegacyFallbackCause.SENDER_NOT_FOUND
+            )
         } else {
             _state.value = CrocTransferState.Error(errorMessageFor(finalResult))
         }
