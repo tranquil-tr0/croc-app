@@ -341,6 +341,13 @@
     <string name="settings_relay6_address">IPv6 中继地址</string>
     <string name="settings_relay6_address_desc">显式指定 IPv6 中继服务器地址（可选）</string>
     <string name="settings_relay6_placeholder">例如 [::1]:9009</string>
+    <string name="settings_notices_title">部分设置被覆盖</string>
+    <string name="settings_notice_old_default_relay">中继 croc.schollz.com 仅被 11.2 之前版本的 croc 和本应用的旧版本使用。清空中继地址即可使用新版对端所用的自动中继。</string>
+    <string name="settings_notice_relay6_ignored">已设置中继地址，IPv6 中继将被忽略。</string>
+    <string name="settings_notice_http_proxy_ignored">已设置 SOCKS5 代理，HTTP 代理将被忽略。</string>
+    <string name="settings_notice_local_only_ignores_relay">已开启仅限本地，中继和代理设置不会被使用。</string>
+    <string name="settings_notice_local_only_ignores_transport">已开启仅限本地，传输方式将被忽略。</string>
+    <string name="settings_notice_legacy_ignores_transport">旧版引擎会忽略传输方式；该设置仅在使用当前引擎时生效。</string>
     <string name="settings_sender_ip">发送方 IP 覆盖</string>
     <string name="settings_sender_ip_desc">显式设置发送方 IP:端口（如处于复杂 NAT 或 VPN 环境下）</string>
     <string name="settings_sender_ip_placeholder">例如 192.168.1.50:9009</string>

@@ -364,6 +364,13 @@
     <string name="settings_relay6_address">IPv6 Relay Address</string>
     <string name="settings_relay6_address_desc">Explicit IPv6 relay server address (optional)</string>
     <string name="settings_relay6_placeholder">e.g. [::1]:9009</string>
+    <string name="settings_notices_title">Some settings are overridden</string>
+    <string name="settings_notice_old_default_relay">Relay croc.schollz.com is only used by croc older than 11.2 and older versions of this app. Clear the relay address to use the automatic relays newer peers use.</string>
+    <string name="settings_notice_relay6_ignored">The IPv6 relay is ignored because a relay address is set.</string>
+    <string name="settings_notice_http_proxy_ignored">The HTTP proxy is ignored because a SOCKS5 proxy is set.</string>
+    <string name="settings_notice_local_only_ignores_relay">Local only is on, so the relay and proxy settings are not used.</string>
+    <string name="settings_notice_local_only_ignores_transport">Local only is on, so the transfer transport is ignored.</string>
+    <string name="settings_notice_legacy_ignores_transport">The legacy engine ignores the transfer transport; it only applies when the current engine is used.</string>
     <string name="settings_sender_ip">Sender IP Override</string>
     <string name="settings_sender_ip_desc">Explicitly set sender IP:port if known (e.g. behind complex NAT or VPN)</string>
     <string name="settings_sender_ip_placeholder">e.g. 192.168.1.50:9009</string>
