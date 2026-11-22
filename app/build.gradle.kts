@@ -18,7 +18,7 @@ val goExecutable = providers.gradleProperty("crocGoExecutable")
 
 val buildCrocAndroidArm64 by tasks.registering(Exec::class) {
     group = "build"
-    description = "Build croc v11.6.5 for Android arm64 from vendored source."
+    description = "Build croc v11.6.6 for Android arm64 from vendored source."
     workingDir = crocSourceDir.asFile
 
     inputs.files(
