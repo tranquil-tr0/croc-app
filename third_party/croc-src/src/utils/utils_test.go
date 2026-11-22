@@ -198,6 +198,21 @@ func TestUnusedFilename(t *testing.T) {
 	assert.Equal(t, "noext (1)", UnusedFilename(folder, "noext"))
 }
 
+func TestGenerateRandomPinUsesAllDigits(t *testing.T) {
+	seen := make(map[rune]bool)
+	for range 2000 {
+		pin := GenerateRandomPin()
+		assert.Len(t, pin, NbPinNumbers)
+		for _, digit := range pin {
+			assert.True(t, digit >= '0' && digit <= '9', "unexpected character %q in pin %q", digit, pin)
+			seen[digit] = true
+		}
+	}
+	for digit := '0'; digit <= '9'; digit++ {
+		assert.True(t, seen[digit], "digit %c never appeared in 2000 pins", digit)
+	}
+}
+
 func TestRandomFileNameReturnsBareName(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
@@ -1696,5 +1711,43 @@ func TestZipDirectoryHonoursIgnoredPaths(t *testing.T) {
 		if !found {
 			t.Errorf("expected %q in zip; got %v", want, members)
 		}
+	}
+}
+
+func TestUnzipDirectoryOverwritePromptReplacesStdin(t *testing.T) {
+	tmpDir := t.TempDir()
+	zipPath := filepath.Join(tmpDir, "test.zip")
+	extractDir := filepath.Join(tmpDir, "extracted")
+	if err := createTestZipWithModTime(zipPath, time.Date(2023, 2, 1, 10, 30, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("Failed to create test zip: %v", err)
+	}
+	if err := UnzipDirectory(extractDir, zipPath); err != nil {
+		t.Fatalf("UnzipDirectory failed: %v", err)
+	}
+	changed := []string{"test/file1.txt", "test/file4.txt"}
+	for _, name := range changed {
+		if err := os.WriteFile(filepath.Join(extractDir, name), []byte("local edit"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var asked []string
+	ctx := WithOverwritePrompt(context.Background(), func(_ context.Context, name string) (bool, error) {
+		asked = append(asked, name)
+		return name == "test/file1.txt", nil
+	})
+	if err := UnzipDirectoryContext(ctx, extractDir, zipPath); err != nil {
+		t.Fatalf("UnzipDirectoryContext failed: %v", err)
+	}
+	if len(asked) != 4 {
+		t.Errorf("asked about %v, want the four existing members", asked)
+	}
+	verifyFileContent(t, filepath.Join(extractDir, "test/file1.txt"), "Test content 1")
+	verifyFileContent(t, filepath.Join(extractDir, "test/file4.txt"), "local edit")
+
+	want := errors.New("prompt failed")
+	ctx = WithOverwritePrompt(context.Background(), func(context.Context, string) (bool, error) { return false, want })
+	if err := UnzipDirectoryContext(ctx, extractDir, zipPath); !errors.Is(err, want) {
+		t.Errorf("UnzipDirectoryContext error = %v, want %v", err, want)
 	}
 }

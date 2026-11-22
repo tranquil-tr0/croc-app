@@ -367,15 +367,6 @@ func filterRoutableIPs(addrs []netip.Prefix) []netip.Prefix {
 	return filtered
 }
 
-func fallbackState() *State {
-	return &State{
-		InterfaceIPs: make(map[string][]netip.Prefix),
-		Interface:    make(map[string]Interface),
-		HaveV4:       true,
-		HaveV6:       true,
-	}
-}
-
 // New instantiates and starts a monitoring instance.
 // The returned monitor is inactive until it's started by the Start method.
 // Use RegisterChangeCallback to get notified of network changes.
@@ -403,16 +394,8 @@ func New(bus *eventbus.Bus, logf logger.Logf) (*Monitor, error) {
 
 	st, err := m.interfaceStateUncached()
 	if err != nil {
-		if runtime.GOOS == "android" || isPermissionError(err) {
-			logf("interfaceStateUncached failed (%v); using fallback state", err)
-			st = fallbackState()
-		} else {
-			m.om.Close()
-			return nil, err
-		}
-	}
-	if st == nil {
-		st = fallbackState()
+		m.om.Close()
+		return nil, err
 	}
 	m.ifState = st
 
@@ -424,10 +407,8 @@ func New(bus *eventbus.Bus, logf logger.Logf) (*Monitor, error) {
 // and situations like cleanups or short-lived CLI programs.
 func NewStatic() *Monitor {
 	m := &Monitor{static: true}
-	if st, err := m.interfaceStateUncached(); err == nil && st != nil {
+	if st, err := m.interfaceStateUncached(); err == nil {
 		m.ifState = st
-	} else {
-		m.ifState = fallbackState()
 	}
 	return m
 }
@@ -439,9 +420,6 @@ func NewStatic() *Monitor {
 func (m *Monitor) InterfaceState() *State {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.ifState == nil {
-		return fallbackState()
-	}
 	return m.ifState
 }
 

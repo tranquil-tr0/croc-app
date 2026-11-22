@@ -453,9 +453,6 @@ const numIncrementalRegions = 3
 // DERP" as in what DERP is the current home connection, this would further
 // reduce flap events.
 func makeProbePlan(dm *tailcfg.DERPMap, ifState *netmon.State, last *Report, preferredDERP tailcfg.DERPRegionID) (plan probePlan) {
-	if ifState == nil {
-		ifState = &netmon.State{HaveV4: true, HaveV6: true}
-	}
 	if last == nil || len(last.RegionLatency) == 0 {
 		return makeProbePlanInitial(dm, ifState)
 	}
@@ -560,9 +557,6 @@ func makeProbePlan(dm *tailcfg.DERPMap, ifState *netmon.State, last *Report, pre
 }
 
 func makeProbePlanInitial(dm *tailcfg.DERPMap, ifState *netmon.State) (plan probePlan) {
-	if ifState == nil {
-		ifState = &netmon.State{HaveV4: true, HaveV6: true}
-	}
 	plan = make(probePlan)
 
 	for _, reg := range dm.Regions {
@@ -927,13 +921,7 @@ func (c *Client) GetReport(ctx context.Context, dm *tailcfg.DERPMap, opts *GetRe
 		return c.finishAndStoreReport(rs, dm), nil
 	}
 
-	var ifState *netmon.State
-	if c.NetMon != nil {
-		ifState = c.NetMon.InterfaceState()
-	}
-	if ifState == nil {
-		ifState = &netmon.State{HaveV4: true, HaveV6: true}
-	}
+	ifState := c.NetMon.InterfaceState()
 
 	// See if IPv6 works at all, or if it's been hard disabled at the
 	// OS level.

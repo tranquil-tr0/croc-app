@@ -55,9 +55,6 @@ var (
 	ipRequest            = []byte("ips?")
 	handshakeRequest     = []byte("handshake")
 	errLocalProbeExpired = errors.New("local probe exceeded discovery budget")
-	// errLocalProbeDeclined is returned when the sender answers the local probe with
-	// "no-local" (croc-app releases up to v6.1.0 do this).
-	errLocalProbeDeclined = errors.New("peer declined local probe")
 )
 
 const defaultAlternateSenderRouteTimeout = 10 * time.Second
@@ -108,6 +105,7 @@ type Options struct {
 	PublicRelay       bool
 	RelayPorts        []string
 	RelayPassword     string
+	WebOrigin         string `json:"-"`
 	Stdout            bool
 	NoPrompt          bool
 	NoMultiplexing    bool
@@ -135,6 +133,11 @@ type Options struct {
 	ExtendedClipboard bool
 	NoUpdateCheck     bool
 	Transport         TransportMode `json:",omitempty"`
+
+	// Prompt, when set, answers croc's yes/no questions instead of reading
+	// stdin. It runs on a croc goroutine and must return when ctx ends. An
+	// error other than ctx's counts as no.
+	Prompt func(ctx context.Context, q Question) (bool, error) `json:"-"`
 }
 
 // TransportMode controls how a sender selects the file-data connection after
@@ -460,34 +463,14 @@ func newClient(ops Options, transport tailcatDataTransport) (c *Client, err erro
 	c.filesReady = make(chan struct{})
 
 	// initialize throttler
-	if len(c.Options.ThrottleUpload) > 1 && c.Options.IsSender {
-		upload := c.Options.ThrottleUpload[:len(c.Options.ThrottleUpload)-1]
+	if c.Options.ThrottleUpload != "" && c.Options.IsSender {
 		var uploadLimit int64
-		uploadLimit, err = strconv.ParseInt(upload, 10, 64)
+		uploadLimit, err = parseUploadLimit(c.Options.ThrottleUpload)
 		if err != nil {
-			panic("Could not parse given Upload Limit")
+			return nil, err
 		}
-		minBurstSize := models.TCP_BUFFER_SIZE
-		var rt rate.Limit
-		switch unit := string(c.Options.ThrottleUpload[len(c.Options.ThrottleUpload)-1:]); unit {
-		case "g", "G":
-			uploadLimit = uploadLimit * 1024 * 1024 * 1024
-		case "m", "M":
-			uploadLimit = uploadLimit * 1024 * 1024
-		case "k", "K":
-			uploadLimit = uploadLimit * 1024
-		default:
-			uploadLimit, err = strconv.ParseInt(c.Options.ThrottleUpload, 10, 64)
-			if err != nil {
-				panic("Could not parse given Upload Limit")
-			}
-		}
-
-		rt = rate.Every(time.Second / time.Duration(uploadLimit))
-		if int(uploadLimit) > minBurstSize {
-			minBurstSize = int(uploadLimit)
-		}
-		c.limiter = rate.NewLimiter(rt, minBurstSize)
+		minBurstSize := max(int(uploadLimit), models.TCP_BUFFER_SIZE)
+		c.limiter = rate.NewLimiter(rate.Limit(uploadLimit), minBurstSize)
 		log.Debugf("Throttling Upload to %#v", c.limiter.Limit())
 	}
 
@@ -1043,7 +1026,13 @@ func gitWalk(ctx context.Context, dir string, gitObj *ignore.GitIgnore, files ma
 			ignoredDir = false // Skip applying ignore rules for root directory
 			return nil
 		}
-		if gitObj.MatchesPath(info.Name()) {
+		// Match the path relative to the .gitignore rather than the base name,
+		// so patterns such as "/dist" and "docs/generated/" behave as in git.
+		relPath, relErr := filepath.Rel(dir, path)
+		if relErr != nil {
+			relPath = info.Name()
+		}
+		if gitObj.MatchesPath(gitIgnorePath(relPath, info.IsDir())) {
 			files[path] = true
 			ignoredDir = true
 			current = path
@@ -1058,6 +1047,17 @@ func gitWalk(ctx context.Context, dir string, gitObj *ignore.GitIgnore, files ma
 		log.Errorf("filepath error")
 	}
 	return err
+}
+
+// gitIgnorePath returns path in the form .gitignore patterns match against:
+// forward slashes, plus a trailing slash for a directory so that directory
+// patterns such as "node_modules/" match it.
+func gitIgnorePath(path string, isDir bool) string {
+	path = filepath.ToSlash(path)
+	if isDir && !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+	return path
 }
 
 func isChild(parentPath, childPath string) bool {
@@ -1133,7 +1133,8 @@ func GetFilesInfoWithExactExclusionsContext(ctx context.Context, fnames []string
 						err = absErr
 						return
 					}
-					if gitIgnore.MatchesPath(path) {
+					info, statErr := os.Stat(path)
+					if gitIgnore.MatchesPath(gitIgnorePath(filepath.Clean(path), statErr == nil && info.IsDir())) {
 						ignoredPaths[abs] = true
 					}
 				}
@@ -1237,6 +1238,10 @@ func GetFilesInfoWithExactExclusionsContext(ctx context.Context, fnames []string
 						return nil
 					}
 					if !info.IsDir() {
+						if isDirectoryLink(pathName, info) {
+							log.Debugf("skipping directory link %s", pathName)
+							return nil
+						}
 						fInfo := FileInfo{
 							Name:         info.Name(),
 							FolderRemote: remoteFolderPath(filepath.Dir(absPath), filepath.Dir(pathName), string(os.PathSeparator)),
@@ -1293,6 +1298,18 @@ func GetFilesInfoWithExactExclusionsContext(ctx context.Context, fnames []string
 		}
 	}
 	return
+}
+
+// isDirectoryLink reports whether info, from Lstat, is a link to a directory
+// that is not a symlink, such as an NTFS junction. Go reports these as
+// irregular files and filepath.Walk does not enter them; sent as files they
+// arrive empty, or fail to open (Documents\My Music denies reads).
+func isDirectoryLink(path string, info os.FileInfo) bool {
+	if info.Mode()&os.ModeIrregular == 0 {
+		return false
+	}
+	target, err := os.Stat(path)
+	return err == nil && target.IsDir()
 }
 
 // remoteFolderPath returns folderPath relative to parentDir, using forward
@@ -1825,14 +1842,14 @@ func (c *Client) Send(filesInfo []FileInfo, emptyFoldersToTransfer []FileInfo, t
 	}()
 	flags := &strings.Builder{}
 	if !c.Options.PublicRelay && c.Options.RelayAddress != models.DEFAULT_RELAY && !c.Options.OnlyLocal {
-		flags.WriteString("--relay " + c.Options.RelayAddress + " ")
+		flags.WriteString("--relay " + shellQuote(c.Options.RelayAddress) + " ")
 	}
 	if c.Options.RelayPassword != models.DEFAULT_PASSPHRASE {
-		flags.WriteString("--pass " + c.Options.RelayPassword + " ")
+		flags.WriteString("--pass " + shellQuote(c.Options.RelayPassword) + " ")
 	}
 	webURL := ""
 	if c.Options.Transport != TransportDERP {
-		webURL = webReceiveURL(c.Options.SharedSecret)
+		webURL = webReceiveURL(c.Options.WebOrigin, c.Options.SharedSecret)
 	}
 	clipboardNotice := ""
 	if !c.Options.DisableClipboard {
@@ -1954,8 +1971,13 @@ func ShowReceiveCommandQrCode(command string) {
 	showReceiveCommandQrCode(command)
 }
 
-func webReceiveURL(code string) string {
-	return "https://getcroc.com/?code=" + url.QueryEscape(code)
+func webReceiveURL(origin, code string) string {
+	origin = strings.TrimSpace(origin)
+	if origin == "" {
+		origin = "https://getcroc.com"
+	}
+	origin = strings.TrimSuffix(origin, "/")
+	return origin + "/?code=" + url.QueryEscape(code)
 }
 
 type peerDiscoveryResult struct {
@@ -2131,13 +2153,7 @@ func (c *Client) Receive() (err error) {
 			if err != nil {
 				return
 			}
-			// Decode into a fresh message: fields absent from the reply (a v10
-			// peer sends no Version, Curve or salt) must not keep our pake1 values.
-			dataMessage = SimpleMessage{}
 			err = json.Unmarshal(data, &dataMessage)
-			if err == nil && dataMessage.Kind == "no-local" {
-				return errLocalProbeDeclined
-			}
 			if err != nil || dataMessage.Kind != "pake2" {
 				log.Debugf("received invalid local PAKE response (%d bytes)", len(data))
 				return fmt.Errorf("dataMessage %s pake failed", ipRequest)
@@ -2198,10 +2214,10 @@ func (c *Client) Receive() (err error) {
 			return
 		}()
 		if err != nil {
-			if !errors.Is(err, errLocalProbeExpired) && !errors.Is(err, errLocalProbeDeclined) {
+			if !errors.Is(err, errLocalProbeExpired) {
 				return fmt.Errorf("local discovery failed: %w", err)
 			}
-			log.Debugf("local discovery skipped (%v); using relay", err)
+			log.Debug("local discovery exceeded its budget; using relay")
 		}
 
 		if len(ips) > 1 {
@@ -2511,6 +2527,12 @@ func (c *Client) extractReceivedArchives() error {
 	if c.stop != nil && c.stop.ctx != nil {
 		ctx = c.stop.ctx
 	}
+	if c.Options.Prompt != nil {
+		ctx = utils.WithOverwritePrompt(ctx, func(ctx context.Context, name string) (bool, error) {
+			choice, err := c.answer(ctx, Question{Kind: QuestionOverwrite, Name: name, Required: true})
+			return choice == "y", err
+		})
+	}
 	root, err := c.receiveFilesystem()
 	if err != nil {
 		return err
@@ -2676,7 +2698,8 @@ func (c *Client) processSenderInfo(senderInfo SenderInfo) (done bool, err error)
 		fname = "text message"
 		displayName = ""
 	}
-	if !c.Options.NoPrompt || c.Options.Ask || senderInfo.Ask {
+	required := !c.Options.NoPrompt || c.Options.Ask || senderInfo.Ask
+	if required {
 		output, colorEnabled := termui.Output(os.Stderr)
 		if displayName != "" {
 			fname = quotedFilename(displayName, colorEnabled)
@@ -2692,7 +2715,18 @@ func (c *Client) processSenderInfo(senderInfo SenderInfo) (done bool, err error)
 				fmt.Fprintf(output, "\r%s %s (%s)? %s ", action, fname, utils.ByteCountDecimal(totalSize), choicePrompt)
 			}
 		}
-		choice, errInput := utils.GetInputContext(c.clientContext(), "")
+	} else {
+		output, colorEnabled := termui.Output(os.Stderr)
+		if displayName != "" {
+			fname = quotedFilename(displayName, colorEnabled)
+		}
+		fmt.Fprintf(output, "\rReceiving %s (%s) \n", fname, utils.ByteCountDecimal(totalSize))
+	}
+	if required || c.Options.Prompt != nil {
+		choice, errInput := c.answer(c.clientContext(), Question{
+			Kind: QuestionAccept, Name: senderInfo.MachineID, Required: required,
+			Files: slices.Clone(c.FilesToTransfer), EmptyFolders: len(c.EmptyFoldersToTransfer),
+		})
 		choice = strings.ToLower(choice)
 		if errors.Is(errInput, context.Canceled) || errors.Is(errInput, context.DeadlineExceeded) {
 			return true, errInput
@@ -2707,12 +2741,6 @@ func (c *Client) processSenderInfo(senderInfo SenderInfo) (done bool, err error)
 			}
 			return true, fmt.Errorf("refused files")
 		}
-	} else {
-		output, colorEnabled := termui.Output(os.Stderr)
-		if displayName != "" {
-			fname = quotedFilename(displayName, colorEnabled)
-		}
-		fmt.Fprintf(output, "\rReceiving %s (%s) \n", fname, utils.ByteCountDecimal(totalSize))
 	}
 	output, _ := termui.Output(os.Stderr)
 	fmt.Fprintf(output, "\nReceiving (%s)\n", c.transferDirection())
@@ -2738,7 +2766,7 @@ func (c *Client) processSenderInfo(senderInfo SenderInfo) (done bool, err error)
 					termui.Warning("overwrite", colorEnabled),
 					termui.PromptChoices("(y/N)", colorEnabled),
 				)
-				choice, inputErr := utils.GetInputContext(c.clientContext(), "")
+				choice, inputErr := c.answer(c.clientContext(), Question{Kind: QuestionOverwrite, Name: c.EmptyFoldersToTransfer[i].FolderRemote, Required: true})
 				if errors.Is(inputErr, context.Canceled) || errors.Is(inputErr, context.DeadlineExceeded) {
 					return false, inputErr
 				}
@@ -3190,7 +3218,7 @@ func (c *Client) processMessage(payload []byte, attempt *transferAttemptState) (
 				remoteFile.MachineID,
 				termui.PromptChoices("(Y/n)", colorEnabled),
 			)
-			choice, errInput := utils.GetInputContext(c.clientContext(), "")
+			choice, errInput := c.answer(c.clientContext(), Question{Kind: QuestionSend, Name: remoteFile.MachineID, Required: true})
 			choice = strings.ToLower(choice)
 			if errors.Is(errInput, context.Canceled) || errors.Is(errInput, context.DeadlineExceeded) {
 				done = true
@@ -3465,6 +3493,9 @@ func (c *Client) createEmptyFileAndFinish(fileInfo FileInfo, i int) (err error) 
 			err = errCreate
 			return
 		}
+		if errChmod := emptyFile.Chmod(fileInfo.Mode.Perm()); errChmod != nil {
+			log.Error(errChmod)
+		}
 		emptyFile.Close()
 	}
 	// setup the progressbar
@@ -3499,7 +3530,7 @@ func (c *Client) receiverWroteFile(index int) bool {
 var receiveFileHash = utils.HashFileCtx
 var receiveOverwriteInput = utils.GetInputContext
 
-func askReceiveOverwrite(ctx context.Context, fileInfo FileInfo, resumable bool) (bool, error) {
+func (c *Client) askReceiveOverwrite(ctx context.Context, fileInfo FileInfo, resumable bool) (bool, error) {
 	action := "Overwrite"
 	promptDetail := ""
 	promptSpacing := " "
@@ -3537,7 +3568,13 @@ func askReceiveOverwrite(ctx context.Context, fileInfo FileInfo, resumable bool)
 		styledChoice,
 		promptSpacing,
 	)
-	choice, inputErr := receiveOverwriteInput(ctx, "")
+	read := receiveOverwriteInput
+	if c.Options.Prompt != nil {
+		read = func(ctx context.Context, _ string) (string, error) {
+			return c.answer(ctx, Question{Kind: QuestionOverwrite, Name: destination, Required: true})
+		}
+	}
+	choice, inputErr := read(ctx, "")
 	if errors.Is(inputErr, context.Canceled) || errors.Is(inputErr, context.DeadlineExceeded) {
 		return false, inputErr
 	}
@@ -4030,4 +4067,28 @@ func copyToClipboard(str string, quiet bool, extendedClipboard bool) bool {
 // CopyToClipboard copies a croc share value using the platform clipboard helper.
 func CopyToClipboard(value string, quiet bool, extended bool) {
 	copyToClipboard(value, quiet, extended)
+}
+
+// parseUploadLimit parses a --throttleUpload value such as "500k" into bytes
+// per second. The optional suffix k, m or g (any case) multiplies by 1024,
+// 1024^2 or 1024^3.
+func parseUploadLimit(value string) (int64, error) {
+	number := value
+	multiplier := int64(1)
+	switch value[len(value)-1] {
+	case 'k', 'K':
+		multiplier = 1024
+	case 'm', 'M':
+		multiplier = 1024 * 1024
+	case 'g', 'G':
+		multiplier = 1024 * 1024 * 1024
+	}
+	if multiplier != 1 {
+		number = value[:len(value)-1]
+	}
+	limit, err := strconv.ParseInt(number, 10, 64)
+	if err != nil || limit <= 0 || limit > math.MaxInt64/multiplier {
+		return 0, fmt.Errorf("invalid upload limit %q: use a positive whole number with an optional k, m or g suffix, e.g. 500k", value)
+	}
+	return limit * multiplier, nil
 }

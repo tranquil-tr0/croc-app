@@ -200,7 +200,12 @@ type Logger interface {
 
 // BasicLogger is the default implementation of Logger.
 type BasicLogger struct {
+	// +checkatomic
 	Level
+
+	// Emitter receives enabled log messages. BasicLogger does not synchronize
+	// access to it. Callers must synchronize field replacement with logging
+	// calls and provide any synchronization needed for concurrent Emit calls.
 	Emitter
 }
 
@@ -250,11 +255,13 @@ func (l *BasicLogger) SetLevel(level Level) {
 	atomic.StoreUint32((*uint32)(&l.Level), uint32(level))
 }
 
-// logMu protects Log below. We use atomic operations to read the value, but
-// updates require logMu to ensure consistency.
+// logMu serializes SetTarget's read-modify-write updates to log.
 var logMu sync.Mutex
 
 // log is the default logger.
+//
+// +checklocks:logMu
+// +checkatomic
 var log atomic.Pointer[BasicLogger]
 
 // Log retrieves the global logger.
@@ -262,17 +269,21 @@ func Log() *BasicLogger {
 	return log.Load()
 }
 
-// SetTarget sets the log target.
+// SetTarget atomically replaces the default logger, using target and a snapshot
+// of the previous logger's level. Existing loggers returned by Log retain their
+// target; a concurrent SetLevel may affect only the previous logger.
 //
-// This is not thread safe and shouldn't be called concurrently with any
-// logging calls.
+// Set the target before creating loggers that should use it. Callers remain
+// responsible for emitter synchronization and for keeping old targets usable
+// while loggers may still use them.
 //
-// SetTarget should be called before any instances of log.Log() to avoid race conditions
+// +checklocksexclude:logMu
 func SetTarget(target Emitter) {
 	logMu.Lock()
 	defer logMu.Unlock()
 	oldLog := Log()
-	log.Store(&BasicLogger{Level: oldLog.Level, Emitter: target})
+	level := Level(atomic.LoadUint32((*uint32)(&oldLog.Level)))
+	log.Store(&BasicLogger{Level: level, Emitter: target})
 }
 
 // SetLevel sets the log level.
@@ -399,9 +410,7 @@ func CopyStandardLogTo(l Level) error {
 }
 
 func init() {
-	// Store the initial value for the log.
-	log.Store(&BasicLogger{Level: Info, Emitter: GoogleEmitter{&Writer{Next: os.Stderr}}})
-
 	// Package initialization is exclusive, which checklocks does not model.
-	warnedSet = make(map[string]struct{}) // +checklocksignore
+	log.Store(&BasicLogger{Level: Info, Emitter: GoogleEmitter{&Writer{Next: os.Stderr}}}) // +checklocksignore
+	warnedSet = make(map[string]struct{})                                                  // +checklocksignore
 }
